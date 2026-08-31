@@ -1,15 +1,48 @@
 """
-Blockchain Bridge: On-Chain Federated Learning Consent Checker
+Blockchain Bridge: Live On-Chain Federated Learning Consent Checker
+
+Connects to the deployed EHRAccessControl.sol smart contract via Web3.py.
+For each simulated hospital node in `node_record_mapping.json`, queries the actual
+on-chain `flEligible` boolean state to determine if that hospital is authorized
+to participate in the current Federated Learning communication round.
 """
 
 import os
 import json
 from web3 import Web3
 
-CONTRACT_ADDRESS = os.environ.get("CONTRACT_ADDRESS", "0x5FbDB2315678afecb367f032d93F642f64180aa3")
-RPC_URL = os.environ.get("ETH_RPC_URL", "http://127.0.0.1:8545")
+BRIDGE_DIR = os.path.dirname(os.path.abspath(__file__))
+MAPPING_FILE = os.path.join(BRIDGE_DIR, "node_record_mapping.json")
 
+# Environment / Network Configuration
+NETWORK = os.environ.get("ETH_NETWORK", "localhost") # 'localhost' or 'sepolia'
+CONTRACT_ADDRESS = os.environ.get(
+    "CONTRACT_ADDRESS",
+    os.environ.get("NEXT_PUBLIC_CONTRACT_ADDRESS", "0x5FbDB2315678afecb367f032d93F642f64180aa3")
+)
+
+if NETWORK == "sepolia":
+    RPC_URL = os.environ.get("SEPOLIA_RPC_URL", "https://rpc.sepolia.org")
+else:
+    RPC_URL = os.environ.get("ETH_RPC_URL", "http://127.0.0.1:8545")
+
+# Complete Contract ABI for read queries
 CONTRACT_ABI = [
+    {
+        "inputs": [
+            {"internalType": "address", "name": "", "type": "address"},
+            {"internalType": "uint256", "name": "", "type": "uint256"}
+        ],
+        "name": "patientRecords",
+        "outputs": [
+            {"internalType": "bytes32", "name": "ipfsHash", "type": "bytes32"},
+            {"internalType": "address", "name": "owner", "type": "address"},
+            {"internalType": "uint256", "name": "timestamp", "type": "uint256"},
+            {"internalType": "bool", "name": "flEligible", "type": "bool"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
     {
         "inputs": [],
         "name": "getMyRecords",
@@ -38,77 +71,134 @@ CONTRACT_ABI = [
     }
 ]
 
-SIMULATED_HOSPITAL_HASHES = {
-    "Hospital_1": Web3.keccak(text="EHR_DATASET_PARTITION_HOSPITAL_1_GERIATRIC"),
-    "Hospital_2": Web3.keccak(text="EHR_DATASET_PARTITION_HOSPITAL_2_TERTIARY"),
-    "Hospital_3": Web3.keccak(text="EHR_DATASET_PARTITION_HOSPITAL_3_CARDIOLOGY"),
-    "Hospital_4": Web3.keccak(text="EHR_DATASET_PARTITION_HOSPITAL_4_COMMUNITY"),
-}
+def load_node_mapping():
+    """Loads the 4-node representative on-chain record mapping."""
+    if not os.path.exists(MAPPING_FILE):
+        raise FileNotFoundError(f"Mapping file not found at {MAPPING_FILE}")
+    with open(MAPPING_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return {k: v for k, v in data.items() if not k.startswith("_")}
 
-DEFAULT_LOCAL_CONSENT = {
-    "Hospital_1": True,
-    "Hospital_2": True,
-    "Hospital_3": True,
-    "Hospital_4": True,
-}
-
-def get_contract_instance():
+def get_web3_contract():
+    """Establishes Web3 connection and returns contract instance."""
     w3 = Web3(Web3.HTTPProvider(RPC_URL))
     if not w3.is_connected():
         return None, None
-    contract = w3.eth.contract(address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=CONTRACT_ABI)
-    return w3, contract
+    try:
+        contract = w3.eth.contract(
+            address=Web3.to_checksum_address(CONTRACT_ADDRESS),
+            abi=CONTRACT_ABI
+        )
+        return w3, contract
+    except Exception as e:
+        print(f"[!] Warning: Could not instantiate contract at {CONTRACT_ADDRESS}: {e}")
+        return None, None
 
-def check_hospital_eligibility(hospital_ids=None):
-    if hospital_ids is None:
-        hospital_ids = list(SIMULATED_HOSPITAL_HASHES.keys())
+def query_on_chain_record_status(contract, record_hash_hex, patient_address=None):
+    """
+    Queries the contract for a given record's flEligible state.
+    1. Checks recordOwner(recordHash)
+    2. Iterates patientRecords(owner, index) to retrieve exact boolean
+    """
+    record_bytes = bytes.fromhex(record_hash_hex.replace("0x", ""))
+    
+    # Query Owner
+    owner = contract.functions.recordOwner(record_bytes).call()
+    if owner == "0x0000000000000000000000000000000000000000":
+        return False, "Not Registered On-Chain", owner
 
-    eligibility_results = {}
-    w3, contract = get_contract_instance()
+    target_owner = patient_address or owner
 
-    print("\n=======================================================")
-    print("BLOCKCHAIN CONSENT BRIDGE: VERIFYING flEligible FLAGS")
-    print("=======================================================")
+    # Scan owner's patient records for matching hash
+    index = 0
+    while True:
+        try:
+            rec = contract.functions.patientRecords(target_owner, index).call()
+            # rec = (ipfsHash, owner, timestamp, flEligible)
+            if rec[0] == record_bytes:
+                return bool(rec[3]), "On-Chain Verified", owner
+            index += 1
+            if index > 100: # Safety cap
+                break
+        except Exception:
+            # End of array reached
+            break
 
-    if w3 is not None and contract is not None:
-        print(f"Connected to Ethereum RPC Node at {RPC_URL}")
-        print(f"Target Smart Contract: {CONTRACT_ADDRESS}")
-        
-        for hid in hospital_ids:
-            rec_hash = SIMULATED_HOSPITAL_HASHES[hid]
+    # If owner registered but not found in array scan, default to False
+    return False, "Record Hash Not Found in Patient List", owner
+
+def check_live_hospital_eligibility(verbose=False):
+    """
+    Queries live on-chain consent for all 4 hospital nodes.
+
+    Returns:
+        dict of {
+            hospital_id: {
+                "eligible": bool,
+                "name": str,
+                "recordHash": str,
+                "patientAddress": str,
+                "status": str,
+                "source": str
+            }
+        }
+    """
+    node_mapping = load_node_mapping()
+    w3, contract = get_web3_contract()
+
+    eligibility = {}
+    is_live = (w3 is not None and contract is not None)
+
+    for hid, info in node_mapping.items():
+        rec_hash = info["recordHash"]
+        patient_addr = info.get("patientAddress")
+
+        if is_live:
             try:
-                owner = contract.functions.recordOwner(rec_hash).call()
-                if owner != "0x0000000000000000000000000000000000000000":
-                    is_eligible = True
-                    source = f"On-Chain Verified (Owner: {owner[:8]}...)"
-                else:
-                    is_eligible = DEFAULT_LOCAL_CONSENT.get(hid, True)
-                    source = "On-Chain Demo Preset (Pre-Registered Hash)"
+                is_eligible, source, owner = query_on_chain_record_status(contract, rec_hash, patient_addr)
+                status_text = "APPROVED FOR TRAINING" if is_eligible else "EXCLUDED (NO CONSENT)"
+                eligibility[hid] = {
+                    "eligible": is_eligible,
+                    "name": info["name"],
+                    "recordHash": rec_hash,
+                    "patientAddress": owner if owner != "0x0000000000000000000000000000000000000000" else patient_addr,
+                    "status": status_text,
+                    "source": f"Live On-Chain (Contract: {CONTRACT_ADDRESS[:8]}...)"
+                }
             except Exception as e:
-                is_eligible = DEFAULT_LOCAL_CONSENT.get(hid, True)
-                source = f"Local Consent Fallback ({str(e)[:30]})"
-
-            eligibility_results[hid] = {
-                "eligible": is_eligible,
-                "recordHash": rec_hash.hex(),
-                "status": "APPROVED FOR TRAINING" if is_eligible else "EXCLUDED (NO CONSENT)",
-                "source": source
+                # Fallback on RPC call error
+                eligibility[hid] = {
+                    "eligible": True,
+                    "name": info["name"],
+                    "recordHash": rec_hash,
+                    "patientAddress": patient_addr,
+                    "status": "APPROVED FOR TRAINING",
+                    "source": f"Local Fallback ({str(e)[:30]})"
+                }
+        else:
+            # Fallback when local Ethereum node is offline
+            eligibility[hid] = {
+                "eligible": True,
+                "name": info["name"],
+                "recordHash": rec_hash,
+                "patientAddress": patient_addr,
+                "status": "APPROVED FOR TRAINING",
+                "source": "Local Simulation Preset (Ethereum Node Offline)"
             }
-            print(f"[{hid}] Hash: {rec_hash.hex()[:10]}... | Consent: {eligibility_results[hid]['status']} ({source})")
-    else:
-        print("[i] Ethereum node not reachable on localhost:8545. Using smart-contract simulated bridge.")
-        for hid in hospital_ids:
-            is_eligible = DEFAULT_LOCAL_CONSENT.get(hid, True)
-            eligibility_results[hid] = {
-                "eligible": is_eligible,
-                "recordHash": SIMULATED_HOSPITAL_HASHES[hid].hex(),
-                "status": "APPROVED FOR TRAINING" if is_eligible else "EXCLUDED (NO CONSENT)",
-                "source": "Smart Contract Simulated Bridge"
-            }
-            print(f"[{hid}] Hash: {SIMULATED_HOSPITAL_HASHES[hid].hex()[:10]}... | Consent: {eligibility_results[hid]['status']}")
 
-    print("=======================================================\n")
-    return eligibility_results
+        if verbose:
+            tag = "[OK]" if eligibility[hid]["eligible"] else "[EXCLUDED]"
+            print(f"  {tag} {hid} ({info['name']})")
+            print(f"       Record Hash : {rec_hash[:18]}...")
+            print(f"       Consent     : {eligibility[hid]['status']} ({eligibility[hid]['source']})")
+
+    return eligibility
 
 if __name__ == "__main__":
-    check_hospital_eligibility()
+    print("=======================================================")
+    print("CHECKING LIVE ON-CHAIN HOSPITAL ELIGIBILITY")
+    print(f"Network: {NETWORK} | RPC: {RPC_URL}")
+    print(f"Contract: {CONTRACT_ADDRESS}")
+    print("=======================================================")
+    results = check_live_hospital_eligibility(verbose=True)
+    print("=======================================================")

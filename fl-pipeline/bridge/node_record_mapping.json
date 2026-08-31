@@ -1,0 +1,31 @@
+{
+  "_comment": "Representative on-chain record mapping for 4-node Federated Learning simulation. In a full production deployment, each individual patient EHR record in a hospital partition carries its own sovereign flEligible flag checked via batch on-chain query.",
+  "Hospital_1": {
+    "name": "Hospital 1 (Geriatric Center - Age >= 60)",
+    "patientAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "recordHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+    "cid": "QmZTMgn39yvnh1f6WdU8iKj5V3eMh3W5D8qW5A4yC11111",
+    "description": "Representative Geriatric Cohort Record (Stand-in for Hospital 1 consent)"
+  },
+  "Hospital_2": {
+    "name": "Hospital 2 (Tertiary General Hospital - Age 52-59)",
+    "patientAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "recordHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+    "cid": "QmZTMgn39yvnh1f6WdU8iKj5V3eMh3W5D8qW5A4yC22222",
+    "description": "Representative Tertiary Cohort Record (Stand-in for Hospital 2 consent)"
+  },
+  "Hospital_3": {
+    "name": "Hospital 3 (Cardiology Referral Specialist Unit)",
+    "patientAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "recordHash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+    "cid": "QmZTMgn39yvnh1f6WdU8iKj5V3eMh3W5D8qW5A4yC33333",
+    "description": "Representative Cardiology Cohort Record (Stand-in for Hospital 3 consent)"
+  },
+  "Hospital_4": {
+    "name": "Hospital 4 (Community Clinic - Age < 52)",
+    "patientAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "recordHash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+    "cid": "QmZTMgn39yvnh1f6WdU8iKj5V3eMh3W5D8qW5A4yC44444",
+    "description": "Representative Outpatient Cohort Record (Stand-in for Hospital 4 consent)"
+  }
+}

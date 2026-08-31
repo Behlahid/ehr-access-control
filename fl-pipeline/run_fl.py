@@ -1,19 +1,16 @@
 """
-Main Federated Learning Orchestrator & Model Evaluation
+Main Federated Learning Orchestrator with Live Per-Round On-Chain Consent Verification
 
-1. Preprocesses UCI Heart Disease Dataset (80/20 train/test split).
-2. Partitions training set into N=4 Non-IID Hospital Clients.
-3. Queries Blockchain Consent Bridge (flEligible on EHRAccessControl.sol).
-4. Executes R=15 rounds of Federated Averaging (FedAvg).
-5. Trains Regularized Centralized Baseline with Validation Split & Early Stopping.
-6. Performs Model Verification: Weight Checksums & Side-by-Side Probability Comparison.
-7. Evaluates Confusion Matrices & Classification Reports.
-8. Generates Evaluation Plot and Metrics CSV.
+At the START OF EVERY COMMUNICATION ROUND, this orchestrator queries EHRAccessControl.sol
+via the Blockchain Bridge (check_live_hospital_eligibility) in real time.
+If a patient revokes flEligible consent in the frontend UI while training is running,
+the very next round dynamically excludes that hospital node from FedAvg weight aggregation!
 """
 
 import os
 import copy
 import hashlib
+import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -23,7 +20,7 @@ from sklearn.model_selection import train_test_split
 from data.preprocess import load_and_preprocess_data, partition_non_iid_hospitals
 from models.model import HeartDiseaseNN
 from models.fed_avg import train_local_client, aggregate_fed_avg, evaluate_model
-from bridge.check_eligibility import check_hospital_eligibility
+from bridge.check_eligibility import check_live_hospital_eligibility
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "evaluation")
 
@@ -36,7 +33,6 @@ def compute_model_weight_hash(model):
 
 def run_federated_learning(
     client_data,
-    eligibility_map,
     X_test,
     y_test,
     input_dim,
@@ -46,36 +42,52 @@ def run_federated_learning(
     random_seed=42
 ):
     """
-    Executes R rounds of Federated Averaging across eligible hospital clients.
+    Executes R rounds of Federated Averaging with LIVE PER-ROUND ON-CHAIN CONSENT RE-CHECKING.
     """
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
 
     global_model = HeartDiseaseNN(input_dim, dropout_rate=0.25)
     metrics_history = []
+    round_exclusions = []
 
     print("\n=======================================================")
     print(f"STARTING FEDERATED LEARNING ({rounds} COMMUNICATION ROUNDS)")
     print(f"    - Number of Hospital Clients : {len(client_data)}")
     print(f"    - Local Epochs per Round     : {local_epochs}")
     print(f"    - Learning Rate (Adam)       : {lr}")
+    print(f"    - Consent Protocol           : Live On-Chain Re-Check Every Round")
     print("=======================================================")
 
     for r in range(1, rounds + 1):
+        # LIVE PER-ROUND ON-CHAIN CONSENT QUERY
+        # Closing the loop: Checks smart contract flEligible state right before training round begins
+        live_eligibility = check_live_hospital_eligibility(verbose=False)
+
         round_client_weights = []
         round_sample_sizes = []
         round_train_losses = []
         round_train_accs = []
+        active_clients = []
+        excluded_clients = []
 
+        # Client Local Training
         for hid, data in client_data.items():
-            is_eligible = eligibility_map.get(hid, {}).get("eligible", True)
+            is_eligible = live_eligibility.get(hid, {}).get("eligible", True)
+            
             if not is_eligible:
-                print(f"[Round {r:02d}] [!] Skipping {hid}: Excluded by smart contract (flEligible=False).")
+                rec_hash = live_eligibility.get(hid, {}).get("recordHash", "Unknown")
+                excluded_clients.append(hid)
+                print(f"[Round {r:02d}] [!] DYNAMIC EXCLUSION: {hid} excluded — patient revoked flEligible consent on-chain (Record: {rec_hash[:16]}...)")
                 continue
 
+            active_clients.append(hid)
+
+            # Instantiate local client model with current global weights
             local_model = HeartDiseaseNN(input_dim, dropout_rate=0.25)
             local_model.set_weights(global_model.get_weights())
 
+            # Train locally inside hospital node
             updated_weights, loss, acc = train_local_client(
                 local_model,
                 data["X"],
@@ -91,11 +103,21 @@ def run_federated_learning(
             round_train_accs.append(acc)
 
         if not round_client_weights:
-            raise RuntimeError("No eligible clients available for training.")
+            raise RuntimeError(f"Round {r}: All hospital clients have revoked FL consent on-chain. Cannot proceed with aggregation.")
 
+        # Record exclusions
+        if excluded_clients:
+            round_exclusions.append({
+                "round": r,
+                "excluded": excluded_clients,
+                "active_count": len(active_clients)
+            })
+
+        # Server FedAvg Weight Aggregation (Weighted by contributing sample size)
         aggregated_weights = aggregate_fed_avg(round_client_weights, round_sample_sizes)
         global_model.set_weights(aggregated_weights)
 
+        # Global Evaluation on Held-Out Test Set
         eval_metrics = evaluate_model(global_model, X_test, y_test)
         avg_train_loss = np.mean(round_train_losses)
         avg_train_acc = np.mean(round_train_accs)
@@ -110,11 +132,13 @@ def run_federated_learning(
             "test_recall": eval_metrics["recall"],
             "test_f1": eval_metrics["f1"],
             "test_auc": eval_metrics["auc"],
-            "participating_clients": len(round_client_weights)
+            "participating_clients": len(round_client_weights),
+            "excluded_clients": ",".join(excluded_clients) if excluded_clients else "None"
         }
         metrics_history.append(record)
 
         print(f"Round {r:02d}/{rounds:02d} | "
+              f"Active Nodes: {len(active_clients)}/{len(client_data)} | "
               f"Train Loss: {avg_train_loss:.4f} | "
               f"Train Acc: {avg_train_acc*100:.1f}% | "
               f"Global Test Acc: {eval_metrics['accuracy']*100:.2f}% | "
@@ -122,7 +146,7 @@ def run_federated_learning(
               f"AUC: {eval_metrics['auc']:.4f}")
 
     print("=======================================================\n")
-    return global_model, pd.DataFrame(metrics_history)
+    return global_model, pd.DataFrame(metrics_history), round_exclusions
 
 def train_centralized_baseline(
     X_train,
@@ -149,7 +173,6 @@ def train_centralized_baseline(
     print("TRAINING CENTRALIZED BASELINE (WITH VALIDATION & EARLY STOPPING)")
     print("=======================================================")
 
-    # Create internal validation split from pooled training data (85% sub-train, 15% validation)
     X_sub_train, X_val, y_sub_train, y_val = train_test_split(
         X_train, y_train, test_size=0.15, random_state=random_seed, stratify=y_train
     )
@@ -187,7 +210,6 @@ def train_centralized_baseline(
             optimizer.step()
             running_train_loss += loss.item() * batch_x.size(0)
 
-        # Validation evaluation
         central_model.eval()
         with torch.no_grad():
             val_preds = central_model(X_val_t)
@@ -205,7 +227,6 @@ def train_centralized_baseline(
             print(f"    [!] Early stopping triggered at Epoch {epoch:02d} (Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch:02d})")
             break
 
-    # Restore best model weights
     if best_weights is not None:
         central_model.set_weights(best_weights)
 
@@ -235,14 +256,12 @@ def verify_models_differ(fed_model, central_model, X_test, y_test, num_samples=1
     is_identical = (fed_hash == central_hash)
     print(f"Are models identical in memory? : {'YES [BUG]' if is_identical else 'NO - Fully Independent Distinct Models'}")
 
-    # Compute Weight L2 Distance
     l2_dist = 0.0
     for (k1, v1), (k2, v2) in zip(fed_model.named_parameters(), central_model.named_parameters()):
         l2_dist += torch.norm(v1 - v2).item() ** 2
     l2_dist = np.sqrt(l2_dist)
     print(f"Total Parameter L2 Distance ||W_fed - W_central||: {l2_dist:.4f}")
 
-    # Probability Side-by-Side comparison on first N test samples
     fed_eval = evaluate_model(fed_model, X_test, y_test)
     central_eval = evaluate_model(central_model, X_test, y_test)
 
@@ -324,9 +343,9 @@ def generate_evaluation_artifacts(fl_df, central_metrics, fed_metrics):
     plt.close()
     print(f"[OK] Saved comparison plot to {plot_path}")
 
-def print_final_comparison_tables(fed_metrics, central_metrics):
+def print_final_comparison_tables(fed_metrics, central_metrics, round_exclusions):
     """
-    Step 3 & 4: Prints Classification Reports, Confusion Matrices, and Final Measured Comparison Table.
+    Prints Classification Reports, Confusion Matrices, and Final Measured Comparison Table.
     """
     print("\n=======================================================")
     print("CLASSIFICATION REPORT: FEDERATED GLOBAL MODEL (FedAvg)")
@@ -362,6 +381,14 @@ def print_final_comparison_tables(fed_metrics, central_metrics):
     print(f"{'True Negatives (TN)':<28} | {fed_metrics['tn']:<18} | {central_metrics['tn']:<20} | {central_metrics['tn'] - fed_metrics['tn']:+d}")
     print(f"{'False Positives (FP)':<28} | {fed_metrics['fp']:<18} | {central_metrics['fp']:<20} | {central_metrics['fp'] - fed_metrics['fp']:+d}")
     print(f"{'False Negatives (FN)':<28} | {fed_metrics['fn']:<18} | {central_metrics['fn']:<20} | {central_metrics['fn'] - fed_metrics['fn']:+d}")
+    print("="*70)
+
+    if round_exclusions:
+        print("\n[!] ON-CHAIN DYNAMIC EXCLUSION EVENT LOG:")
+        for exc in round_exclusions:
+            print(f"   * Round {exc['round']:02d}: Excluded {', '.join(exc['excluded'])} ({exc['active_count']} active contributing nodes)")
+    else:
+        print("\n[*] ON-CHAIN DYNAMIC EXCLUSION EVENT LOG: All 4 Hospital Nodes Maintained Active Consent throughout.")
     print("="*70 + "\n")
 
 def main():
@@ -372,13 +399,9 @@ def main():
     # 2. Partition Non-IID Hospitals
     client_data = partition_non_iid_hospitals(X_train, y_train, X_train_df, n_clients=4)
 
-    # 3. Check Blockchain Bridge
-    eligibility_map = check_hospital_eligibility(list(client_data.keys()))
-
-    # 4. Run Federated Learning
-    fed_model, fl_df = run_federated_learning(
+    # 3. Run Federated Learning with Per-Round Live Consent Querying
+    fed_model, fl_df, round_exclusions = run_federated_learning(
         client_data,
-        eligibility_map,
         X_test,
         y_test,
         input_dim=input_dim,
@@ -387,7 +410,7 @@ def main():
         lr=0.008
     )
 
-    # 5. Train Centralized Baseline with Validation & Early Stopping
+    # 4. Train Centralized Baseline with Validation & Early Stopping
     central_model, central_eval, best_epoch = train_centralized_baseline(
         X_train,
         y_train,
@@ -399,14 +422,14 @@ def main():
         lr=0.008
     )
 
-    # 6. Verify Models Differ (Checksums & Raw Probabilities)
+    # 5. Verify Models Differ (Checksums & Raw Probabilities)
     fed_eval, central_eval = verify_models_differ(fed_model, central_model, X_test, y_test, num_samples=15)
 
-    # 7. Generate Evaluation Artifacts
+    # 6. Generate Evaluation Artifacts
     generate_evaluation_artifacts(fl_df, central_eval, fed_eval)
 
-    # 8. Print Reports & Comparison Table
-    print_final_comparison_tables(fed_eval, central_eval)
+    # 7. Print Reports & Comparison Table
+    print_final_comparison_tables(fed_eval, central_eval, round_exclusions)
 
 if __name__ == "__main__":
     main()
