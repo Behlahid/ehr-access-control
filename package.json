@@ -1,0 +1,30 @@
+{
+  "name": "ehr-access-control",
+  "version": "1.0.0",
+  "description": "Decentralized Electronic Health Record (EHR) Access Control Smart Contract for Patient Data Sovereignty and Federated Learning",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test",
+    "test:gas": "cross-env REPORT_GAS=true hardhat test",
+    "compile": "hardhat compile",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia"
+  },
+  "keywords": [
+    "solidity",
+    "ehr",
+    "hardhat",
+    "access-control",
+    "blockchain",
+    "federated-learning",
+    "ipfs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.10"
+  }
+}
