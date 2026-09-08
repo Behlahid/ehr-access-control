@@ -5,7 +5,19 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useWeb3 } from "../context/Web3Context";
 import { shortenAddress } from "../lib/utils";
-import { Shield, Activity, User, Stethoscope, AlertTriangle, Copy, Check, LogOut, RefreshCw } from "lucide-react";
+import {
+  Shield,
+  Activity,
+  User,
+  Stethoscope,
+  AlertTriangle,
+  Copy,
+  Check,
+  LogOut,
+  ChevronRight,
+  ExternalLink,
+  Layers
+} from "lucide-react";
 
 export default function Navbar() {
   const { account, networkName, isCorrectNetwork, connectWallet, disconnect, switchNetwork, role, setRole } = useWeb3();
@@ -28,48 +40,54 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800/80">
+    <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-obsidian-950/85 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
-              <Shield className="w-5 h-5 text-white" />
+          <Link href="/" className="flex items-center gap-3.5 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-800 to-obsidian-900 border border-slate-700/80 flex items-center justify-center shadow-md group-hover:border-cyan-500/50 group-hover:shadow-cyan-500/10 transition-all">
+              <Shield className="w-5 h-5 text-cyan-400 group-hover:scale-105 transition-transform" />
             </div>
             <div>
-              <div className="text-lg font-bold bg-gradient-to-r from-sky-400 to-indigo-300 bg-clip-text text-transparent">
-                HealthLedger
+              <div className="flex items-center gap-2">
+                <span className="text-base font-extrabold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+                  HealthLedger
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  v2.4
+                </span>
               </div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-mono">
-                EHR Access Control & FL
-              </div>
+              <p className="text-[11px] text-slate-400 font-mono tracking-tight">
+                Sovereign EHR & On-Chain Access Control
+              </p>
             </div>
           </Link>
 
-          {/* Role Navigation Pills (if wallet connected) */}
+          {/* Navigation Segmented Controls */}
           {account && (
-            <div className="hidden md:flex items-center p-1 bg-slate-900/70 rounded-xl border border-slate-800">
+            <div className="hidden md:flex items-center p-1 bg-obsidian-900/90 rounded-xl border border-white/[0.08] shadow-inner">
               <button
                 onClick={() => handleSwitchRole("patient")}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   pathname.startsWith("/patient") || role === "patient"
-                    ? "bg-sky-500 text-white shadow-md shadow-sky-500/25"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 border border-transparent"
                 }`}
               >
-                <User className="w-4 h-4" />
+                <User className="w-3.5 h-3.5" />
                 Patient Portal
               </button>
+
               <button
                 onClick={() => handleSwitchRole("doctor")}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   pathname.startsWith("/doctor") || role === "doctor"
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 border border-transparent"
                 }`}
               >
-                <Stethoscope className="w-4 h-4" />
-                Doctor Portal
+                <Stethoscope className="w-3.5 h-3.5" />
+                Doctor Terminal
               </button>
             </div>
           )}
@@ -81,43 +99,43 @@ export default function Navbar() {
                 {/* Network Pill */}
                 <div
                   onClick={() => !isCorrectNetwork && switchNetwork(11155111)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border cursor-pointer transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-medium border cursor-pointer transition-all ${
                     isCorrectNetwork
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                      ? "bg-slate-900/80 border-slate-700/80 text-slate-300 hover:border-slate-600"
                       : "bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
                   }`}
-                  title={!isCorrectNetwork ? "Click to switch to Sepolia" : networkName}
+                  title={!isCorrectNetwork ? "Click to switch network to Sepolia" : `Connected to ${networkName}`}
                 >
-                  {isCorrectNetwork ? (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  ) : (
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  )}
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isCorrectNetwork ? "bg-emerald-400 ring-2 ring-emerald-500/20" : "bg-amber-400 animate-pulse"
+                    }`}
+                  />
                   <span className="hidden sm:inline">{networkName}</span>
                 </div>
 
                 {/* Account Address Pill */}
-                <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1.5">
-                  <div className="w-2 h-2 rounded-full bg-sky-400" />
-                  <span className="text-xs font-mono text-slate-200">
+                <div className="flex items-center gap-1.5 bg-obsidian-900 border border-slate-700/80 rounded-xl px-3 py-1.5 shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                  <span className="text-xs font-mono font-medium text-slate-200">
                     {shortenAddress(account)}
                   </span>
                   <button
                     onClick={handleCopy}
-                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors"
-                    title="Copy Address"
+                    className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-cyan-300 transition-colors"
+                    title="Copy Wallet Address"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
 
-                {/* Disconnect */}
+                {/* Disconnect Button */}
                 <button
                   onClick={() => {
                     disconnect();
                     router.push("/");
                   }}
-                  className="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-xl transition-colors"
+                  className="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-transparent hover:border-rose-500/30 rounded-xl transition-all"
                   title="Disconnect Wallet"
                 >
                   <LogOut className="w-4 h-4" />
@@ -126,9 +144,10 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={connectWallet}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-sm font-semibold shadow-lg shadow-sky-500/25 transition-all"
+                className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-obsidian-950 font-bold text-xs tracking-tight shadow-md shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all active:scale-[0.98]"
               >
-                Connect Wallet
+                <Shield className="w-4 h-4" />
+                <span>Connect Wallet</span>
               </button>
             )}
           </div>
@@ -137,12 +156,12 @@ export default function Navbar() {
 
       {/* Network Warning Banner */}
       {account && !isCorrectNetwork && (
-        <div className="bg-amber-500/15 border-y border-amber-500/30 px-4 py-2 text-center text-xs text-amber-200 flex items-center justify-center gap-2">
+        <div className="bg-amber-500/10 border-y border-amber-500/30 px-4 py-2 text-center text-xs text-amber-200 flex items-center justify-center gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>You are connected to an unsupported network. Please switch to <b>Ethereum Sepolia Testnet</b> or <b>Localhost (31337)</b>.</span>
+          <span>Unsupported Network. Switch to <b>Ethereum Sepolia Testnet</b> or <b>Localhost Hardhat (31337)</b>.</span>
           <button
             onClick={() => switchNetwork(11155111)}
-            className="ml-2 underline font-semibold text-amber-300 hover:text-white"
+            className="ml-2 px-2.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-semibold transition-colors"
           >
             Switch to Sepolia
           </button>

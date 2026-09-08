@@ -20,6 +20,12 @@ import {
   User,
   Info,
   CheckCircle2,
+  ExternalLink,
+  Shield,
+  Cpu,
+  Lock,
+  Terminal,
+  Clock
 } from "lucide-react";
 
 export default function DoctorDashboard() {
@@ -98,7 +104,7 @@ export default function DoctorDashboard() {
       setNotification({
         type: "success",
         title: "Access Request Broadcasted",
-        message: `Broadcasted AccessRequested event on-chain to patient ${shortenAddress(searchResult.owner)}.`,
+        message: `An on-chain AccessRequested event was emitted for record ${shortenHash(searchResult.recordHash)}.`,
         txHash: receipt.hash,
       });
     } catch (err) {
@@ -115,182 +121,217 @@ export default function DoctorDashboard() {
 
   if (!account) {
     return (
-      <div className="py-20 text-center space-y-6">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-          <Stethoscope className="w-8 h-8" />
+      <div className="py-20 text-center max-w-md mx-auto space-y-5">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-obsidian-900 border border-slate-700/80 flex items-center justify-center text-indigo-400 shadow-lg">
+          <Stethoscope className="w-7 h-7" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Connect Wallet to Access Clinician Dashboard</h2>
-        <p className="text-sm text-slate-400 max-w-md mx-auto">
-          Please connect your MetaMask wallet to verify on-chain EHR viewing permissions, request record access from patients, and decrypt clinical payloads.
+        <h2 className="text-2xl font-bold text-white tracking-tight">Physician Terminal</h2>
+        <p className="text-sm text-slate-400 leading-relaxed">
+          Connect your authorized clinical Ethereum wallet to verify patient EHR permissions, broadcast access requests, and decrypt authorized medical payloads.
         </p>
         <button
           onClick={connectWallet}
-          className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/25 transition-all"
+          className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs tracking-tight shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
         >
-          Connect MetaMask
+          Connect Physician Wallet
         </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Toast Notification */}
       <Notification notification={notification} onClose={() => setNotification(null)} />
 
+      {/* Decrypt Modal */}
       {searchResult && (
         <DecryptModal
           isOpen={isDecryptOpen}
+          cid={searchResult.cid}
           recordHash={searchResult.recordHash}
           onClose={() => setIsDecryptOpen(false)}
         />
       )}
 
-      {/* Page Header */}
-      <div className="pb-4 border-b border-slate-800">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Doctor / Clinician Portal</h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1">
-          Verify On-Chain Access Rights, Request Consent, and Decrypt Medical Payloads
+      {/* Terminal Header */}
+      <div className="border-b border-slate-800 pb-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Physician Access Terminal
+          </h1>
+          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+            EHR Verifier
+          </span>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1 font-mono">
+          Physician Address: <span className="text-slate-200">{account}</span>
         </p>
       </div>
 
-      {/* Search Access Box */}
-      <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-slate-800 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-            <Search className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white">Check Record Access Permissions</h3>
-            <p className="text-xs text-slate-400">
-              Enter a 32-byte record hash (<code className="text-sky-300">0x...</code>) or IPFS CID (<code className="text-sky-300">Qm...</code>)
-            </p>
-          </div>
+      {/* Query Search Card */}
+      <div className="surface-card rounded-2xl border border-white/[0.08] p-6 space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Search className="w-4 h-4 text-cyan-400" />
+            <span>Verify Record Permission On-Chain</span>
+          </h3>
+          <p className="text-xs text-slate-400">
+            Enter an IPFS Content Identifier (CIDv0) or a 32-byte hexadecimal multihash to query smart contract permissions.
+          </p>
         </div>
 
-        <form onSubmit={handleCheckAccess} className="space-y-4">
+        <form onSubmit={handleCheckAccess} className="space-y-3">
           <div className="relative">
             <input
               type="text"
-              required
-              placeholder="e.g. 0xa536a54990058dd58a3a060b349601852b6299e3043315b9fab5cb359c302078 or Qm..."
+              placeholder="e.g. QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco or 0x82a9..."
               value={inputHash}
               onChange={(e) => setInputHash(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl glass-input text-white text-xs font-mono placeholder:text-slate-500 pr-28 transition-all"
+              className="w-full pl-4 pr-32 py-3 rounded-xl clinical-input text-xs font-mono placeholder:text-slate-500 placeholder:font-sans"
             />
             <button
               type="submit"
               disabled={isSearching || !inputHash.trim()}
-              className="absolute right-2 top-2 bottom-2 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md disabled:opacity-50 flex items-center gap-1.5 transition-all"
+              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-mono text-xs font-semibold flex items-center gap-1.5 transition-all"
             >
-              {isSearching ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Search className="w-3.5 h-3.5" />
-              )}
-              <span>Verify</span>
+              {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+              <span>Inspect</span>
             </button>
           </div>
         </form>
 
-        {/* Verification Result Display */}
-        {searchResult && (
-          <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-5 animate-in fade-in">
-            {/* Status Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                {searchResult.isRegistered ? (
-                  searchResult.hasPermission ? (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>ACCESS AUTHORIZED</span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-                      <ShieldAlert className="w-4 h-4" />
-                      <span>ACCESS NOT GRANTED</span>
-                    </div>
-                  )
-                ) : (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
-                    <ShieldAlert className="w-4 h-4" />
-                    <span>UNREGISTERED RECORD HASH</span>
-                  </div>
-                )}
-              </div>
-
-              {searchResult.isRegistered && (
-                <span className="text-xs font-mono text-slate-400">
-                  Doctor: <span className="text-slate-200">{shortenAddress(account)}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Metadata Fields */}
-            {searchResult.isRegistered ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 space-y-1">
-                  <span className="text-slate-500 block">Record Patient Owner</span>
-                  <span className="text-sky-400 font-semibold select-all">{searchResult.owner}</span>
-                </div>
-
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 space-y-1">
-                  <span className="text-slate-500 block">IPFS Content Identifier (CIDv0)</span>
-                  <span className="text-slate-200 select-all">{searchResult.cid}</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400">
-                This cryptographic hash has not been registered by any patient on the smart contract.
-              </p>
-            )}
-
-            {/* Action Buttons */}
-            {searchResult.isRegistered && (
-              <div className="flex flex-wrap gap-3 pt-2">
-                {searchResult.hasPermission ? (
-                  <button
-                    onClick={() => setIsDecryptOpen(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all"
-                  >
-                    <Unlock className="w-4 h-4" />
-                    <span>Decrypt & View Medical Payload</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleRequestAccess}
-                    disabled={isRequesting}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all"
-                  >
-                    {isRequesting ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                    <span>Request Access from Patient</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Info Card */}
-      <div className="p-5 glass-panel rounded-2xl border border-slate-800 flex items-start gap-3.5 text-xs text-slate-400">
-        <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-        <div className="space-y-1 leading-relaxed">
-          <p className="font-semibold text-white">How Access Rights & Decryption Function:</p>
-          <p>
-            1. Calling <code className="text-sky-300">hasAccess(recordHash, doctor)</code> verifies if the caller is the patient owner or an authorized clinician.
-          </p>
-          <p>
-            2. If access is missing, clicking <b>"Request Access"</b> triggers <code className="text-amber-300">requestAccess()</code>, emitting an on-chain event to alert the patient.
-          </p>
-          <p>
-            3. Once granted, the doctor fetches the encrypted blob from IPFS and decrypts it directly in-browser using the patient-provided AES-256 key.
-          </p>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+          <span className="text-slate-500">Supported Formats:</span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+            IPFS CIDv0 (Qm...)
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+            Solidity bytes32 (0x...)
+          </span>
         </div>
       </div>
+
+      {/* Query Result Card */}
+      {searchResult && (
+        <div className="surface-card rounded-2xl border border-white/[0.1] overflow-hidden space-y-6">
+          {/* Header Banner Based on Permission */}
+          <div
+            className={`p-5 flex items-center justify-between border-b ${
+              !searchResult.isRegistered
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
+                : searchResult.hasPermission
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+                : "bg-rose-500/10 border-rose-500/20 text-rose-300"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {!searchResult.isRegistered ? (
+                <ShieldAlert className="w-6 h-6 text-amber-400" />
+              ) : searchResult.hasPermission ? (
+                <ShieldCheck className="w-6 h-6 text-emerald-400" />
+              ) : (
+                <Lock className="w-6 h-6 text-rose-400" />
+              )}
+              <div>
+                <h4 className="text-sm font-bold">
+                  {!searchResult.isRegistered
+                    ? "Record Not Registered On-Chain"
+                    : searchResult.hasPermission
+                    ? "Access Permission Granted"
+                    : "Access Permission Denied"}
+                </h4>
+                <p className="text-xs opacity-80 mt-0.5">
+                  {!searchResult.isRegistered
+                    ? "This multihash does not correspond to any active medical record on Ethereum."
+                    : searchResult.hasPermission
+                    ? "Your physician address is authorized to decrypt and review this patient's EHR payload."
+                    : "Your address is not currently listed in the patient's smart contract access mapping."}
+                </p>
+              </div>
+            </div>
+
+            <div className="font-mono text-xs font-bold uppercase">
+              {!searchResult.isRegistered ? "Unanchored" : searchResult.hasPermission ? "Authorized" : "Restricted"}
+            </div>
+          </div>
+
+          {/* Record Technical Properties */}
+          <div className="p-6 space-y-4 pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
+                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
+                  RECORD MULTIHASH (bytes32)
+                </span>
+                <div className="font-mono text-xs text-white truncate">
+                  {searchResult.recordHash}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
+                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
+                  IPFS CONTENT IDENTIFIER
+                </span>
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-xs text-cyan-400 truncate">
+                    {searchResult.cid}
+                  </div>
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${searchResult.cid}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-slate-400 hover:text-cyan-300 ml-2"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
+                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
+                  PATIENT RECORD OWNER
+                </span>
+                <div className="font-mono text-xs text-white">
+                  {searchResult.isRegistered ? searchResult.owner : "Zero Address (0x000...)"}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
+                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
+                  CONSENSUS CHECK
+                </span>
+                <div className="font-mono text-xs text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> O(1) Constant Gas Verified
+                </div>
+              </div>
+            </div>
+
+            {/* Action Triggers */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              {searchResult.isRegistered && searchResult.hasPermission && (
+                <button
+                  onClick={() => setIsDecryptOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98]"
+                >
+                  <Unlock className="w-4 h-4" />
+                  <span>Open Decryption Station</span>
+                </button>
+              )}
+
+              {searchResult.isRegistered && !searchResult.hasPermission && (
+                <button
+                  onClick={handleRequestAccess}
+                  disabled={isRequesting}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
+                >
+                  {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <span>Broadcast On-Chain Access Request</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

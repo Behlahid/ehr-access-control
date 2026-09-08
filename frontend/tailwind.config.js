@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -7,25 +8,32 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'Menlo', 'monospace'],
+      },
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
+        obsidian: {
+          950: '#06080c',
+          900: '#0b0f17',
+          850: '#101522',
+          800: '#161c2d',
+          700: '#21293e',
         },
-        emerald: {
-          500: '#10b981',
-          600: '#059669',
+        clinical: {
+          emerald: '#10b981',
+          emeraldDark: '#059669',
+          cyan: '#06b6d4',
+          sapphire: '#0284c7',
+          violet: '#8b5cf6',
+          amber: '#f59e0b',
+          rose: '#ef4444',
         },
-        slate: {
-          850: '#151f32',
-          900: '#0f172a',
-          950: '#090d16',
-        }
+      },
+      boxShadow: {
+        'subtle-emerald': '0 0 20px -5px rgba(16, 185, 129, 0.15)',
+        'subtle-cyan': '0 0 20px -5px rgba(6, 182, 212, 0.15)',
+        'subtle-violet': '0 0 20px -5px rgba(139, 92, 246, 0.15)',
       },
     },
   },

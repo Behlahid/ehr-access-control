@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { fetchEncryptedBlob } from "../lib/ipfs";
 import { decryptFile } from "../lib/crypto";
 import { bytes32ToCid, shortenHash } from "../lib/utils";
-import { X, Unlock, Key, FileText, Download, AlertCircle, Loader2, CheckCircle2, Eye } from "lucide-react";
+import { X, Unlock, Key, FileText, Download, AlertCircle, Loader2, CheckCircle2, Eye, Terminal } from "lucide-react";
 
 export default function DecryptModal({ isOpen, recordHash, onClose }) {
   const [aesKey, setAesKey] = useState("");
@@ -54,8 +54,8 @@ export default function DecryptModal({ isOpen, recordHash, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg glass-panel rounded-2xl border border-slate-700/70 p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-obsidian-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg surface-card rounded-2xl border border-white/[0.12] p-6 shadow-2xl space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -63,9 +63,9 @@ export default function DecryptModal({ isOpen, recordHash, onClose }) {
               <Unlock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Client-Side Record Decryption</h3>
+              <h3 className="text-base font-bold text-white">Client-Side Decryption Station</h3>
               <p className="text-xs text-slate-400 font-mono">
-                CID: <span className="text-sky-400">{cid}</span>
+                CID: <span className="text-cyan-400">{cid}</span>
               </p>
             </div>
           </div>
@@ -73,109 +73,107 @@ export default function DecryptModal({ isOpen, recordHash, onClose }) {
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Error Banner */}
         {error && (
-          <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-start gap-2">
+          <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-            <div className="flex-1 leading-relaxed">{error}</div>
+            <div className="flex-1 font-mono leading-relaxed">{error}</div>
           </div>
         )}
 
         {!decryptedResult ? (
           <form onSubmit={handleDecrypt} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                Paste 256-bit AES Decryption Key (Hex)
+              <label className="block text-xs font-mono text-slate-300 uppercase tracking-wide mb-2">
+                Input Patient AES-256 Secret Key (64-Char Hex)
               </label>
               <textarea
                 rows={3}
                 required
-                placeholder="e.g. 4a8f9c2d1b0e3f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a"
+                placeholder="Paste the patient's AES-256 hexadecimal decryption key..."
                 value={aesKey}
                 onChange={(e) => setAesKey(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl glass-input text-white text-xs font-mono placeholder:text-slate-600 transition-all resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl clinical-input text-white text-xs font-mono placeholder:text-slate-500 transition-all resize-none"
               />
-              <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                The ciphertext is pulled from IPFS and decrypted strictly inside your browser. No plaintext data is transmitted.
+              <p className="text-[11px] text-slate-500 font-mono mt-1">
+                Decryption runs entirely in your local browser memory via Web Crypto API.
               </p>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                disabled={loading}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                className="px-4 py-2 rounded-xl surface-interactive text-xs font-mono text-slate-400 hover:text-white transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !aesKey.trim()}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold shadow-md shadow-indigo-600/20 transition-all disabled:opacity-50"
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Fetch from IPFS & Decrypt</span>
+                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlock className="w-3.5 h-3.5" />}
+                <span>Decrypt Payload</span>
               </button>
             </div>
           </form>
         ) : (
-          <div className="space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-emerald-300">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <h4 className="text-xs font-bold text-white">Decryption Successful!</h4>
-                <p className="text-[11px] text-emerald-300/90">
-                  Authenticated and decrypted via Web Crypto API (AES-GCM-256).
+                <h4 className="text-xs font-bold text-emerald-300 font-mono">
+                  Decryption Verified Successfully
+                </h4>
+                <p className="text-[11px] text-slate-300">
+                  AES-GCM-256 authentication tag matched. Data integrity intact.
                 </p>
               </div>
             </div>
 
-            <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2 text-xs">
-              <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">File Name:</span>
-                <span className="text-white font-medium">{decryptedResult.fileName}</span>
+            {/* Decrypted Content Preview */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>File: {decryptedResult.fileName}</span>
+                <span>Type: {decryptedResult.mimeType || "application/octet-stream"}</span>
               </div>
-              <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">MIME Type:</span>
-                <span className="text-slate-300 font-mono">{decryptedResult.mimeType}</span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-slate-400">Size:</span>
-                <span className="text-slate-300">{(decryptedResult.decryptedBuffer.byteLength / 1024).toFixed(1)} KB</span>
-              </div>
+
+              {decryptedResult.textContent ? (
+                <div className="bg-obsidian-950 rounded-xl border border-slate-800 p-3.5 max-h-56 overflow-y-auto">
+                  <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap">
+                    {decryptedResult.textContent}
+                  </pre>
+                </div>
+              ) : (
+                <div className="p-8 text-center bg-obsidian-950 rounded-xl border border-slate-800 space-y-2">
+                  <FileText className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-xs text-slate-400">
+                    Binary medical file (e.g. PDF/DICOM/Image) ready for local inspection.
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* In-Browser Preview if Image */}
-            {decryptedResult.mimeType.startsWith("image/") && (
-              <div className="max-h-60 overflow-hidden rounded-xl border border-slate-800 flex items-center justify-center bg-black/40">
-                <img
-                  src={decryptedResult.url}
-                  alt="Decrypted Medical Record"
-                  className="max-h-60 object-contain rounded-lg"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-sky-500/20 transition-all"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Decrypted File</span>
-              </button>
+            <div className="flex items-center justify-between gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setDecryptedResult(null)}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-colors"
+                className="px-4 py-2 rounded-xl surface-interactive text-xs font-mono text-slate-400 hover:text-white"
               >
                 Decrypt Another
+              </button>
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-obsidian-950 font-mono text-xs font-bold shadow-md shadow-cyan-500/20 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Save Decrypted File</span>
               </button>
             </div>
           </div>
