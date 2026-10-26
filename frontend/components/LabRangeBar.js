@@ -8,6 +8,7 @@ import { CheckCircle2, AlertTriangle } from "lucide-react";
  * Inspired by Apple Health & Epic MyChart laboratory observation interfaces.
  * Displays discrete medical lab metrics with standard reference intervals,
  * an interactive horizontal gauge, and clinical status flags.
+ * Fully supports clean clinical light mode and dark mode.
  */
 export default function LabRangeBar({
   name,
@@ -28,32 +29,32 @@ export default function LabRangeBar({
   const isNormal = status === "normal" || (value >= optimalMin && value <= optimalMax);
 
   return (
-    <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-colors space-y-2">
+    <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-colors space-y-2 shadow-sm">
       {/* Header: Test Name & Measured Value */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-200">{name}</span>
-          {notes && <span className="text-[10px] text-slate-500">({notes})</span>}
+          <span className="font-semibold text-slate-800 dark:text-slate-200">{name}</span>
+          {notes && <span className="text-[10px] text-slate-500 dark:text-slate-400">({notes})</span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono font-bold text-white text-sm">
-            {value} <span className="text-slate-400 font-normal text-xs">{unit}</span>
+          <span className="font-mono font-bold text-slate-900 dark:text-white text-sm">
+            {value} <span className="text-slate-500 dark:text-slate-400 font-normal text-xs">{unit}</span>
           </span>
           <span
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${
               isNormal
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20"
+                : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20"
             }`}
           >
             {isNormal ? (
               <>
-                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Normal</span>
               </>
             ) : (
               <>
-                <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
+                <AlertTriangle className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
                 <span>Borderline</span>
               </>
             )}
@@ -63,10 +64,10 @@ export default function LabRangeBar({
 
       {/* Visual Reference Range Gauge */}
       <div className="space-y-1">
-        <div className="relative h-2 w-full bg-slate-800/90 rounded-full overflow-hidden">
+        <div className="relative h-2 w-full bg-slate-100 dark:bg-slate-800/90 rounded-full overflow-hidden">
           {/* Normal Reference Range Highlight */}
           <div
-            className="absolute top-0 bottom-0 bg-emerald-500/25 rounded-sm"
+            className="absolute top-0 bottom-0 bg-emerald-500/20 dark:bg-emerald-500/25 rounded-sm"
             style={{
               left: `${optimalStartPct}%`,
               width: `${optimalWidthPct}%`,
@@ -75,16 +76,16 @@ export default function LabRangeBar({
           {/* Active Value Indicator Pin */}
           <div
             className={`absolute top-0 bottom-0 w-2.5 -ml-1 rounded-full shadow-md transition-all ${
-              isNormal ? "bg-emerald-400 shadow-emerald-500/50" : "bg-amber-400 shadow-amber-500/50"
+              isNormal ? "bg-emerald-500 shadow-emerald-500/50" : "bg-amber-500 shadow-amber-500/50"
             }`}
             style={{ left: `${percentage}%` }}
           />
         </div>
 
         {/* Range Labels */}
-        <div className="flex justify-between text-[10px] font-mono text-slate-500">
+        <div className="flex justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
           <span>{min}</span>
-          <span className="text-slate-400">
+          <span className="text-slate-600 dark:text-slate-400">
             Standard: {optimalMin}–{optimalMax} {unit}
           </span>
           <span>{max}</span>
