@@ -68,8 +68,18 @@ export function Web3Provider({ children }) {
   // Load saved role and demo preferences
   useEffect(() => {
     const savedRole = localStorage.getItem("ehr_user_role");
+    const savedDemo = localStorage.getItem("ehr_demo_mode");
     if (savedRole) {
       setRoleState(savedRole);
+    }
+    if (savedDemo === "true") {
+      const targetRole = savedRole || "doctor";
+      setIsDemoMode(true);
+      const profile = DEMO_PROFILES[targetRole] || DEMO_PROFILES.doctor;
+      setAccount(profile.address);
+      setDemoUser(profile);
+      setNetworkName("Simulated Clinical Sandbox");
+      setIsCorrectNetwork(true);
     }
   }, []);
 
@@ -84,6 +94,7 @@ export function Web3Provider({ children }) {
 
   const enterDemoMode = (targetRole = "doctor") => {
     setIsDemoMode(true);
+    localStorage.setItem("ehr_demo_mode", "true");
     setRole(targetRole);
     const profile = DEMO_PROFILES[targetRole] || DEMO_PROFILES.doctor;
     setAccount(profile.address);
@@ -94,6 +105,7 @@ export function Web3Provider({ children }) {
 
   const exitDemoMode = () => {
     setIsDemoMode(false);
+    localStorage.removeItem("ehr_demo_mode");
     setDemoUser(null);
     setAccount(null);
     setNetworkName("");

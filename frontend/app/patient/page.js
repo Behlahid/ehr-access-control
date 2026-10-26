@@ -243,66 +243,7 @@ export default function PatientDashboard() {
     };
   };
 
-  // Gateway screen if neither wallet nor demo is active
-  if (!account && !isDemoMode) {
-    return (
-      <div className="py-16 text-center max-w-xl mx-auto space-y-6">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-xl">
-          <Shield className="w-8 h-8" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Patient Sovereign Health Portal
-          </h2>
-          <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
-            Take complete ownership of your medical records. Control physician access delegation, protect diagnostic data with client-side encryption, and govern AI research consent.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => enterDemoMode("patient")}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-obsidian-950 font-bold text-xs tracking-tight shadow-lg shadow-cyan-500/25 transition-all active:scale-[0.98]"
-          >
-            <Sparkles className="w-4 h-4 text-obsidian-950" />
-            <span>Explore Demo Health Profile (Alex Mercer - 4 Records)</span>
-          </button>
-
-          <button
-            onClick={connectWallet}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs tracking-tight transition-all"
-          >
-            <Shield className="w-4 h-4 text-cyan-400" />
-            <span>Connect Live MetaMask</span>
-          </button>
-        </div>
-
-        <div className="pt-8 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Full Sovereignty</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Only your private key can grant or revoke doctor viewing rights.</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Zero-Knowledge Storage</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Files encrypted before IPFS upload. Storage nodes only see ciphertext.</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              <span>Dynamic AI Consent</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Participate in medical AI training with real-time opt-in and opt-out.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isSimulated = !account;
 
   const flCount = records.filter((r) => r.flEligible).length;
   const flPercentage = records.length > 0 ? Math.round((flCount / records.length) * 100) : 0;
@@ -372,7 +313,7 @@ export default function PatientDashboard() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            {isDemoMode ? (
+            {isSimulated || isDemoMode ? (
               <span>Viewing Health Profile: <strong className="text-slate-200">Alex Mercer</strong> • (MRN-9482-A, Metro Health System)</span>
             ) : (
               <span>Personal Health ID: <span className="text-slate-200 font-mono">{account}</span></span>
@@ -399,6 +340,30 @@ export default function PatientDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Interactive Demo Sandbox Banner */}
+      {isSimulated && (
+        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300">
+              <Sparkles className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Interactive Patient Demo Mode Active</h4>
+              <p className="text-[11px] text-slate-400">
+                Viewing verified medical profile for <strong className="text-slate-200">Alex Mercer</strong> (MRN-9482-A, Metro Health). You can test AI research consent switches, doctor authorizations, and inspect cryptographic audit proofs without MetaMask.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={connectWallet}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-obsidian-950 font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+          >
+            <Shield className="w-4 h-4" />
+            <span>Connect MetaMask</span>
+          </button>
+        </div>
+      )}
 
       {/* Executive Health Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

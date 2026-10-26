@@ -230,66 +230,8 @@ export default function DoctorDashboard() {
     }
   };
 
-  // Gateway screen if neither wallet nor demo is active
-  if (!account && !isDemoMode) {
-    return (
-      <div className="py-16 text-center max-w-xl mx-auto space-y-6">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-xl">
-          <Stethoscope className="w-8 h-8" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Physician Consultation Terminal
-          </h2>
-          <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
-            Review patient electronic health records, verify immutable consultation permissions on Ethereum, and decrypt diagnostic payloads.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => enterDemoMode("doctor")}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs tracking-tight shadow-lg shadow-indigo-500/25 transition-all active:scale-[0.98]"
-          >
-            <Sparkles className="w-4 h-4 text-purple-200" />
-            <span>Launch Clinical Demo (Dr. Sarah Chen, MD)</span>
-          </button>
-
-          <button
-            onClick={connectWallet}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs tracking-tight transition-all"
-          >
-            <Shield className="w-4 h-4 text-cyan-400" />
-            <span>Connect Live MetaMask Wallet</span>
-          </button>
-        </div>
-
-        <div className="pt-8 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>O(1) Access Check</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Constant-gas permission verification directly on EVM state.</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Client AES Decrypt</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Plaintext PHI never leaves client RAM; zero server exposure.</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-purple-400" />
-              <span>Immutable Audit</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Every inspection query and grant produces an indexed on-chain log.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const effectiveAccount = account || "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+  const isSimulated = !account;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -319,7 +261,7 @@ export default function DoctorDashboard() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            {isDemoMode ? (
+            {isSimulated || isDemoMode ? (
               <span>Authenticated as <strong className="text-slate-200">Dr. Sarah Chen, MD</strong> • Chief of Clinical Cardiology (St. Jude Heart Institute)</span>
             ) : (
               <span>Physician Key: <span className="text-slate-200 font-mono">{account}</span></span>
@@ -327,13 +269,37 @@ export default function DoctorDashboard() {
           </p>
         </div>
 
-        {isDemoMode && (
-          <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span>Interactive Demo Sandbox</span>
+        {isSimulated && (
+          <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Clinical Demo Sandbox</span>
           </span>
         )}
       </div>
+
+      {/* Interactive Demo Sandbox Banner */}
+      {isSimulated && (
+        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-300">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Interactive Physician Demo Mode Active</h4>
+              <p className="text-[11px] text-slate-400">
+                Viewing as <strong className="text-slate-200">Dr. Sarah Chen, MD</strong> (St. Jude Heart Institute). Click any Quick-Inspect demo chip below to test instant on-chain verification and clinical decryption.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={connectWallet}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-obsidian-950 font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+          >
+            <Shield className="w-4 h-4" />
+            <span>Connect MetaMask</span>
+          </button>
+        </div>
+      )}
 
       {/* Query Search Card with Linear-Style Quick Chips */}
       <div className="surface-card rounded-2xl border border-white/[0.08] p-6 space-y-5">
