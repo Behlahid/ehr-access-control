@@ -35,32 +35,9 @@ export default function CommandPalette({ isOpen, onClose, onOpenJargon }) {
     }
   }, [isOpen]);
 
-  // Global keyboard listener for Escape and Arrow navigation
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isOpen) return;
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredItems.length));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % Math.max(1, filteredItems.length));
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (filteredItems[selectedIndex]) {
-          filteredItems[selectedIndex].onSelect();
-          onClose();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+    setSelectedIndex(0);
+  }, [query]);
 
   const toggleTheme = () => {
     const isDark = document.documentElement.classList.toggle("dark");
@@ -188,6 +165,33 @@ export default function CommandPalette({ isOpen, onClose, onOpenJargon }) {
       (item.badge && item.badge.toLowerCase().includes(q))
     );
   });
+
+  // Global keyboard listener for Escape and Arrow navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredItems.length));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % Math.max(1, filteredItems.length));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (filteredItems[selectedIndex]) {
+          filteredItems[selectedIndex].onSelect();
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, filteredItems, selectedIndex, onClose]);
 
   if (!isOpen) return null;
 

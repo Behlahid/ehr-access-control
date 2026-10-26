@@ -25,8 +25,17 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
     if (isOpen) {
       setQuery(initialQuery || "");
       setSelectedCategory("all");
+
+      const handleKeyDown = (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onClose();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isOpen, initialQuery]);
+  }, [isOpen, initialQuery, onClose]);
 
   if (!isOpen) return null;
 
