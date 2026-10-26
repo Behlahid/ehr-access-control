@@ -107,23 +107,24 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-white/[0.08] bg-white/90 dark:bg-obsidian-950/90 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-3">
           {/* Brand Logo & Search */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 rounded-xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+          <div className="flex items-center gap-4 shrink-0">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 <Shield className="w-5 h-5 text-white" />
               </div>
-              <div>
+              <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                  <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors whitespace-nowrap">
                     Aegis Clinical Health
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                    Sovereign Enclave
+                  <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 whitespace-nowrap">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Zero-Knowledge Enclave Active
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:block">
                   Decentralized EHR & Federated AI
                 </p>
               </div>
@@ -132,10 +133,10 @@ export default function Navbar() {
             {/* Quick OmniSearch Bar (Stitch blueprint) */}
             <div
               onClick={() => setIsCommandOpen(true)}
-              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors w-64 shadow-2xs"
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors w-60 shadow-2xs"
             >
               <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-xs truncate">Search SNOMED, LOINC, vitals...</span>
+              <span className="text-xs truncate">Search LOINC, CIDs, Patients...</span>
               <kbd className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
                 ⌘K
               </kbd>
@@ -143,64 +144,60 @@ export default function Navbar() {
           </div>
 
           {/* Navigation Segmented Controls */}
-          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-inner">
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-inner shrink-0">
             <button
               id="nav-patient-tab"
               onClick={() => handleSwitchRole("patient")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 pathname.startsWith("/patient")
                   ? "bg-white dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-slate-200 dark:border-cyan-500/40 shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent"
               }`}
             >
               <User className="w-3.5 h-3.5" />
-              <span>Patient Portal</span>
+              <span className="whitespace-nowrap">Patient Portal</span>
             </button>
 
             <button
               id="nav-doctor-tab"
               onClick={() => handleSwitchRole("doctor")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 pathname.startsWith("/doctor")
                   ? "bg-white dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-slate-200 dark:border-indigo-500/40 shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent"
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
-              <span>Physician Terminal</span>
+              <span className="whitespace-nowrap">Physician Terminal</span>
             </button>
           </div>
 
           {/* Right Action / Wallet / Theme Toggle / Demo Status */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Plain-Language Healthtech Guide (Jargon Translation Matrix) */}
             <button
               id="jargon-matrix-btn"
               type="button"
               onClick={() => setIsJargonOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs cursor-pointer"
               title="Patient Plain-Language Guide / Jargon Matrix (⌘J or Ctrl+J)"
             >
               <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-              <span className="hidden md:inline">Plain-Language</span>
+              <span className="hidden md:inline whitespace-nowrap">Plain-Language</span>
               <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 ⌘J
               </kbd>
             </button>
 
-            {/* Linear Command Palette Trigger */}
+            {/* Mobile-Only Search Trigger (hidden on lg+ since OmniSearch bar is present) */}
             <button
-              id="command-palette-btn"
+              id="command-palette-mobile-btn"
               type="button"
               onClick={() => setIsCommandOpen(true)}
-              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs"
-              title="Linear OmniSearch (⌘K or Ctrl+K)"
+              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs"
+              title="Search (⌘K)"
             >
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline">Search</span>
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                ⌘K
-              </kbd>
+              <Search className="w-4 h-4" />
             </button>
 
             {/* Theme Switcher Button */}
@@ -219,18 +216,17 @@ export default function Navbar() {
             </button>
 
             {isDemoMode ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs font-medium">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-                  <span className="font-semibold hidden sm:inline">{demoUser?.name || "Clinical Demo"}</span>
-                  <span className="text-[10px] opacity-75 hidden md:inline">({demoUser?.organization})</span>
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400 shrink-0" />
+                  <span className="font-semibold whitespace-nowrap hidden sm:inline">{demoUser?.name || "Clinical Demo"}</span>
                 </div>
                 <button
                   onClick={exitDemoMode}
-                  className="px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-slate-200 dark:border-slate-800 transition-all"
+                  className="px-2 py-1.5 rounded-lg text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer"
                   title="Exit Demo Sandbox"
                 >
-                  Exit Demo
+                  Exit
                 </button>
               </div>
             ) : account ? (

@@ -430,10 +430,27 @@ export default function PatientDashboard() {
               <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">72</span>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">bpm</span>
             </div>
-            {/* Delicate SVG Sparkline Curve */}
-            <div className="my-3 h-8 w-full">
-              <svg className="w-full h-full text-cyan-600 dark:text-cyan-400" preserveAspectRatio="none" viewBox="0 0 100 25">
-                <path d="M0,15 Q10,12 20,15 T35,10 T50,18 T65,8 T80,14 T100,12" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+            {/* Delicate Apple Health SVG Sparkline Curve with Gradient Fill */}
+            <div className="my-2.5 h-10 w-full overflow-hidden">
+              <svg className="w-full h-full text-cyan-600 dark:text-cyan-400" preserveAspectRatio="none" viewBox="0 0 100 30">
+                <defs>
+                  <linearGradient id="patientHrGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,18 C12,18 18,8 28,12 C38,16 42,24 52,14 C62,6 68,22 78,12 C88,4 94,14 100,10 L100,30 L0,30 Z"
+                  fill="url(#patientHrGrad)"
+                />
+                <path
+                  d="M0,18 C12,18 18,8 28,12 C38,16 42,24 52,14 C62,6 68,22 78,12 C88,4 94,14 100,10"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
               </svg>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
@@ -456,12 +473,12 @@ export default function PatientDashboard() {
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mmHg</span>
             </div>
             {/* Dual Range Indicator */}
-            <div className="my-3 flex flex-col gap-1.5">
+            <div className="my-2.5 flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
                 <span>Systolic 118</span>
                 <span>Diastolic 78</span>
               </div>
-              <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+              <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
                 <div className="w-3/5 bg-cyan-600 dark:bg-cyan-500 rounded-full" />
                 <div className="w-2/5 bg-slate-200 dark:bg-slate-700" />
               </div>
@@ -485,16 +502,34 @@ export default function PatientDashboard() {
               <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">92</span>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mg/dL</span>
             </div>
-            <div className="my-3 flex items-center justify-between text-xs py-1">
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Est. A1C</span>
-              <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">4.9% (eAG 94)</span>
+            {/* Smooth Fasting Glucose Wave */}
+            <div className="my-2.5 h-10 w-full overflow-hidden">
+              <svg className="w-full h-full text-purple-600 dark:text-purple-400" preserveAspectRatio="none" viewBox="0 0 100 30">
+                <defs>
+                  <linearGradient id="patientGlucoseGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,16 C20,14 40,18 60,15 C80,13 90,15 100,14 L100,30 L0,30 Z"
+                  fill="url(#patientGlucoseGrad)"
+                />
+                <path
+                  d="M0,16 C20,14 40,18 60,15 C80,13 90,15 100,14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                />
+              </svg>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Normal
               </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Fasting 8h Verif</span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Est. A1C: 4.9%</span>
             </div>
           </div>
 
@@ -502,25 +537,40 @@ export default function PatientDashboard() {
           <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Oxygen</span>
-              <Cpu className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <Cpu className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">99%</span>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">SpO2</span>
             </div>
-            {/* Continuous Pulse Oximetry Bar */}
-            <div className="my-3 flex items-center gap-2">
-              <div className="h-2 flex-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
-                <div className="w-[99%] bg-cyan-600 dark:bg-cyan-500 rounded-full" />
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Pleth 99</span>
+            {/* Pulse Oximetry Continuous Wave */}
+            <div className="my-2.5 h-10 w-full overflow-hidden">
+              <svg className="w-full h-full text-emerald-600 dark:text-emerald-400" preserveAspectRatio="none" viewBox="0 0 100 30">
+                <defs>
+                  <linearGradient id="patientSpo2Grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,22 C10,22 15,22 20,8 C22,2 25,28 28,18 C32,10 38,22 45,22 C55,22 60,22 65,8 C67,2 70,28 73,18 C77,10 83,22 100,22 L100,30 L0,30 Z"
+                  fill="url(#patientSpo2Grad)"
+                />
+                <path
+                  d="M0,22 C10,22 15,22 20,8 C22,2 25,28 28,18 C32,10 38,22 45,22 C55,22 60,22 65,8 C67,2 70,28 73,18 C77,10 83,22 100,22"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Optimal Saturation
               </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Cont. Pulse Ox</span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Cont. Pulse 99</span>
             </div>
           </div>
         </div>
