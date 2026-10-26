@@ -400,12 +400,14 @@ export default function PatientDashboard() {
       </div>
 
       {/* Primary Patient Portal View Tabs: Linear / Apple Health Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 relative z-10">
         <button
+          id="tab-records-btn"
+          type="button"
           onClick={() => setActiveTab("records")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === "records"
-              ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm"
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
               : "text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent"
           }`}
         >
@@ -417,10 +419,12 @@ export default function PatientDashboard() {
         </button>
 
         <button
+          id="tab-careteam-btn"
+          type="button"
           onClick={() => setActiveTab("careteam")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === "careteam"
-              ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm"
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
               : "text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent"
           }`}
         >
