@@ -271,4 +271,71 @@ describe("EHRAccessControl Smart Contract", function () {
       expect(await ehrContract.hasAccess(SAMPLE_HASH_1, researcher.address)).to.equal(false);
     });
   });
+
+  describe("7. Time-Bound Authorization & Expiry (grantAccessWithExpiry)", function () {
+    beforeEach(async function () {
+      await ehrContract.connect(patient1).addRecord(SAMPLE_HASH_1);
+    });
+
+    it("Should grant time-bound access and enforce expiration", async function () {
+      const DURATION = 3600; // 1 hour
+      const tx = await ehrContract.connect(patient1).grantAccessWithExpiry(SAMPLE_HASH_1, doctor1.address, DURATION);
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt.blockNumber);
+
+      await expect(tx)
+        .to.emit(ehrContract, "AccessGrantedWithExpiry")
+        .withArgs(SAMPLE_HASH_1, patient1.address, doctor1.address, block.timestamp + DURATION);
+
+      // Immediately active
+      expect(await ehrContract.hasAccess(SAMPLE_HASH_1, doctor1.address)).to.equal(true);
+
+      // Fast forward EVM time by 3601 seconds
+      await ethers.provider.send("evm_increaseTime", [3601]);
+      await ethers.provider.send("evm_mine");
+
+      // Now expired
+      expect(await ehrContract.hasAccess(SAMPLE_HASH_1, doctor1.address)).to.equal(false);
+    });
+
+    it("Should revert if duration is zero", async function () {
+      await expect(
+        ehrContract.connect(patient1).grantAccessWithExpiry(SAMPLE_HASH_1, doctor1.address, 0)
+      ).to.be.revertedWith("Duration must be greater than zero");
+    });
+  });
+
+  describe("8. Epic MyChart Emergency Break-the-Glass (breakGlassEmergencyAccess)", function () {
+    beforeEach(async function () {
+      await ehrContract.connect(patient1).addRecord(SAMPLE_HASH_1);
+    });
+
+    it("Should allow emergency physician to execute break-glass with clinical justification", async function () {
+      const justification = "Acute trauma: severe unconscious motor vehicle collision in ICU";
+      const tx = await ehrContract.connect(doctor1).breakGlassEmergencyAccess(SAMPLE_HASH_1, justification);
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt.blockNumber);
+
+      await expect(tx)
+        .to.emit(ehrContract, "EmergencyBreakGlass")
+        .withArgs(SAMPLE_HASH_1, doctor1.address, patient1.address, justification, block.timestamp);
+
+      // Access granted for emergency trauma window
+      expect(await ehrContract.hasAccess(SAMPLE_HASH_1, doctor1.address)).to.equal(true);
+      expect(await ehrContract.emergencyAccessLogged(SAMPLE_HASH_1, doctor1.address)).to.equal(true);
+    });
+
+    it("Should revert if justification is too short", async function () {
+      await expect(
+        ehrContract.connect(doctor1).breakGlassEmergencyAccess(SAMPLE_HASH_1, "Too short")
+      ).to.be.revertedWith("Clinical justification must be descriptive");
+    });
+
+    it("Should revert if record does not exist", async function () {
+      const randomHash = ethers.keccak256(ethers.toUtf8Bytes("UnknownRecord"));
+      await expect(
+        ehrContract.connect(doctor1).breakGlassEmergencyAccess(randomHash, "Emergency ICU resuscitation")
+      ).to.be.revertedWith("Record does not exist");
+    });
+  });
 });

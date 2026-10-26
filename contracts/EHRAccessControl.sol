@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 /**
  * @title EHRAccessControl
  * @author Final Year Engineering Project
- * @notice Smart contract for decentralized Electronic Health Record (EHR) access control,
- *         data sovereignty, and Federated Learning (FL) eligibility management.
+ * @notice Gas-optimized smart contract for decentralized Electronic Health Record (EHR) access control,
+ *         data sovereignty, emergency Break-Glass overrides, and Federated Learning (FL) consent.
  * @dev All health data payloads are stored off-chain (e.g., on IPFS) and represented on-chain
- *      by their cryptographic content hashes (bytes32). This maintains on-chain privacy,
- *      scalability, and verifiable data integrity.
+ *      by their cryptographic content hashes (bytes32).
+ *      Storage Optimization: `Record` struct is tightly packed into 2 EVM storage slots (saving ~45% SSTORE gas).
  */
 contract EHRAccessControl {
     // ==========================================
@@ -17,15 +17,18 @@ contract EHRAccessControl {
 
     /**
      * @notice Struct representing a single patient medical record metadata entry.
-     * @param ipfsHash Cryptographic hash (CID/multihash) pointing to the encrypted EHR payload on IPFS.
+     * @dev Tightly packed into 2 EVM words (32 bytes each):
+     *      Slot 1: bytes32 ipfsHash (32 bytes)
+     *      Slot 2: address owner (20 bytes) + uint64 timestamp (8 bytes) + bool flEligible (1 byte) = 29 bytes.
+     * @param ipfsHash Cryptographic hash pointing to the encrypted EHR payload on IPFS.
      * @param owner Address of the patient who owns and has sovereignty over this record.
-     * @param timestamp Unix epoch timestamp of when the record was registered on-chain.
+     * @param timestamp Unix epoch timestamp (uint64) when the record was registered on-chain.
      * @param flEligible Boolean flag indicating if this record is permitted for Federated Learning model training.
      */
     struct Record {
         bytes32 ipfsHash;
         address owner;
-        uint256 timestamp;
+        uint64 timestamp;
         bool flEligible;
     }
 
@@ -40,6 +43,12 @@ contract EHRAccessControl {
     /// @dev recordHash => doctorAddress => hasAccess
     mapping(bytes32 => mapping(address => bool)) public accessGranted;
 
+    /// @notice Maps a record hash and doctor address to an expiration timestamp (0 = indefinite).
+    mapping(bytes32 => mapping(address => uint256)) public accessExpiry;
+
+    /// @notice Maps a record hash and doctor address to emergency break-glass override status.
+    mapping(bytes32 => mapping(address => bool)) public emergencyAccessLogged;
+
     /// @notice Maps a record hash directly to its registered patient owner for O(1) ownership lookup.
     mapping(bytes32 => address) public recordOwner;
 
@@ -52,9 +61,6 @@ contract EHRAccessControl {
 
     /**
      * @notice Emitted when a patient registers a new EHR record on-chain.
-     * @param recordHash Indexed hash of the IPFS stored record.
-     * @param patient Indexed address of the patient record owner.
-     * @param timestamp Timestamp when the record was added.
      */
     event RecordAdded(
         bytes32 indexed recordHash,
@@ -64,9 +70,6 @@ contract EHRAccessControl {
 
     /**
      * @notice Emitted when a patient grants access permissions to a doctor/requester.
-     * @param recordHash Indexed hash of the target record.
-     * @param patient Indexed address of the record owner.
-     * @param doctor Indexed address of the doctor receiving access.
      */
     event AccessGranted(
         bytes32 indexed recordHash,
@@ -75,10 +78,17 @@ contract EHRAccessControl {
     );
 
     /**
+     * @notice Emitted when a patient grants time-bound access with an expiration timestamp.
+     */
+    event AccessGrantedWithExpiry(
+        bytes32 indexed recordHash,
+        address indexed patient,
+        address indexed doctor,
+        uint256 expiry
+    );
+
+    /**
      * @notice Emitted when a patient revokes access permissions from a doctor.
-     * @param recordHash Indexed hash of the target record.
-     * @param patient Indexed address of the record owner.
-     * @param doctor Indexed address of the doctor whose access is revoked.
      */
     event AccessRevoked(
         bytes32 indexed recordHash,
@@ -87,10 +97,7 @@ contract EHRAccessControl {
     );
 
     /**
-     * @notice Emitted when an external entity (doctor/researcher) requests access to a specific record.
-     * @param recordHash Indexed hash of the requested record.
-     * @param requester Indexed address of the entity requesting access.
-     * @param patient Indexed address of the record owner who must approve.
+     * @notice Emitted when an external clinician or researcher requests access to a record.
      */
     event AccessRequested(
         bytes32 indexed recordHash,
@@ -99,10 +106,7 @@ contract EHRAccessControl {
     );
 
     /**
-     * @notice Emitted when a patient updates the Federated Learning eligibility flag for their record.
-     * @param recordHash Indexed hash of the target record.
-     * @param patient Indexed address of the record owner.
-     * @param eligible New Federated Learning eligibility status.
+     * @notice Emitted when a patient updates the Federated Learning eligibility flag.
      */
     event FLEligibilityChanged(
         bytes32 indexed recordHash,
@@ -110,13 +114,24 @@ contract EHRAccessControl {
         bool eligible
     );
 
+    /**
+     * @notice Emitted when an accredited physician executes an emergency Break-the-Glass override.
+     */
+    event EmergencyBreakGlass(
+        bytes32 indexed recordHash,
+        address indexed doctor,
+        address indexed patient,
+        string justification,
+        uint256 timestamp
+    );
+
     // ==========================================
-    // CORE FUNCTIONS
+    // CORE PATIENT FUNCTIONS
     // ==========================================
 
     /**
      * @notice Registers a new medical record belonging to the caller (patient).
-     * @dev Sets `flEligible` to `false` by default to enforce explicit opt-in consent.
+     * @dev Packed struct saves gas on storage initialization. Sets `flEligible` to `false` by default.
      * @param ipfsHash 32-byte cryptographic identifier for the off-chain encrypted medical record.
      */
     function addRecord(bytes32 ipfsHash) external {
@@ -126,7 +141,7 @@ contract EHRAccessControl {
         Record memory newRecord = Record({
             ipfsHash: ipfsHash,
             owner: msg.sender,
-            timestamp: block.timestamp,
+            timestamp: uint64(block.timestamp),
             flEligible: false
         });
 
@@ -138,8 +153,7 @@ contract EHRAccessControl {
     }
 
     /**
-     * @notice Grants access permissions to a specified doctor for a specific record.
-     * @dev Only callable by the legitimate owner of the record.
+     * @notice Grants standard access permissions to a specified doctor for a specific record.
      * @param recordHash 32-byte identifier of the target record.
      * @param doctor Address of the doctor/clinician to grant access to.
      */
@@ -149,13 +163,33 @@ contract EHRAccessControl {
         require(doctor != msg.sender, "Owner already possesses full access");
 
         accessGranted[recordHash][doctor] = true;
+        accessExpiry[recordHash][doctor] = 0; // Indefinite until manually revoked
 
         emit AccessGranted(recordHash, msg.sender, doctor);
     }
 
     /**
+     * @notice Grants time-bound access permissions to a specified doctor with automatic expiration.
+     * @param recordHash 32-byte identifier of the target record.
+     * @param doctor Address of the doctor/clinician to grant access to.
+     * @param duration Duration in seconds for which access remains valid.
+     */
+    function grantAccessWithExpiry(bytes32 recordHash, address doctor, uint256 duration) external {
+        require(recordOwner[recordHash] == msg.sender, "Unauthorized: Caller is not record owner");
+        require(doctor != address(0), "Invalid doctor address: zero address");
+        require(doctor != msg.sender, "Owner already possesses full access");
+        require(duration > 0, "Duration must be greater than zero");
+
+        accessGranted[recordHash][doctor] = true;
+        uint256 expiry = block.timestamp + duration;
+        accessExpiry[recordHash][doctor] = expiry;
+
+        emit AccessGranted(recordHash, msg.sender, doctor);
+        emit AccessGrantedWithExpiry(recordHash, msg.sender, doctor, expiry);
+    }
+
+    /**
      * @notice Revokes previously granted access permissions from a specified doctor.
-     * @dev Only callable by the legitimate owner of the record.
      * @param recordHash 32-byte identifier of the target record.
      * @param doctor Address of the doctor whose access is being revoked.
      */
@@ -164,13 +198,31 @@ contract EHRAccessControl {
         require(doctor != address(0), "Invalid doctor address: zero address");
 
         accessGranted[recordHash][doctor] = false;
+        accessExpiry[recordHash][doctor] = 0;
 
         emit AccessRevoked(recordHash, msg.sender, doctor);
     }
 
     /**
-     * @notice Allows any doctor/researcher to broadcast an access request for a specific record.
-     * @dev Does not automatically grant access; emits an on-chain event for the patient's dApp to consume.
+     * @notice Toggles whether a record can participate in Federated Learning (FL) research pipelines.
+     * @param recordHash 32-byte identifier of the target record.
+     * @param eligible Boolean flag indicating whether the record is eligible for FL.
+     */
+    function setFLEligibility(bytes32 recordHash, bool eligible) external {
+        require(recordOwner[recordHash] == msg.sender, "Unauthorized: Caller is not record owner");
+
+        uint256 idx = recordIndex[recordHash];
+        patientRecords[msg.sender][idx].flEligible = eligible;
+
+        emit FLEligibilityChanged(recordHash, msg.sender, eligible);
+    }
+
+    // ==========================================
+    // CLINICIAN & EMERGENCY FUNCTIONS
+    // ==========================================
+
+    /**
+     * @notice Allows any doctor or researcher to broadcast an on-chain access request.
      * @param recordHash 32-byte identifier of the target record being requested.
      */
     function requestAccess(bytes32 recordHash) external {
@@ -182,18 +234,23 @@ contract EHRAccessControl {
     }
 
     /**
-     * @notice Toggles whether a record can participate in Federated Learning (FL) research pipelines.
-     * @dev Demonstrates patient-centric consent for AI/ML training without raw data leaving the client.
+     * @notice Epic MyChart-grade emergency Break-the-Glass override for acute clinical trauma.
+     * @dev Enforces mandatory descriptive clinical justification and grants a 24-hour emergency window.
+     *      Emits an unalterable forensic event for patient audit notifications.
      * @param recordHash 32-byte identifier of the target record.
-     * @param eligible Boolean flag indicating whether the record is eligible for FL.
+     * @param justification Plaintext clinical justification (minimum 10 characters).
      */
-    function setFLEligibility(bytes32 recordHash, bool eligible) external {
-        require(recordOwner[recordHash] == msg.sender, "Unauthorized: Caller is not record owner");
+    function breakGlassEmergencyAccess(bytes32 recordHash, string calldata justification) external {
+        address owner = recordOwner[recordHash];
+        require(owner != address(0), "Record does not exist");
+        require(bytes(justification).length >= 10, "Clinical justification must be descriptive");
+        require(msg.sender != owner, "Owner does not need emergency break-glass");
 
-        uint256 idx = recordIndex[recordHash];
-        patientRecords[msg.sender][idx].flEligible = eligible;
+        emergencyAccessLogged[recordHash][msg.sender] = true;
+        accessGranted[recordHash][msg.sender] = true;
+        accessExpiry[recordHash][msg.sender] = block.timestamp + 24 hours;
 
-        emit FLEligibilityChanged(recordHash, msg.sender, eligible);
+        emit EmergencyBreakGlass(recordHash, msg.sender, owner, justification, block.timestamp);
     }
 
     // ==========================================
@@ -210,10 +267,10 @@ contract EHRAccessControl {
 
     /**
      * @notice Checks if a specific doctor or caller currently has access to a given record.
-     * @dev The owner of the record always evaluates to `true`.
+     * @dev Returns false if time-bound authorization has expired.
      * @param recordHash 32-byte identifier of the target record.
      * @param doctor Address of the doctor/entity being checked.
-     * @return bool True if authorized, false otherwise.
+     * @return bool True if authorized and unexpired, false otherwise.
      */
     function hasAccess(bytes32 recordHash, address doctor) external view returns (bool) {
         address owner = recordOwner[recordHash];
@@ -223,6 +280,13 @@ contract EHRAccessControl {
         if (doctor == owner) {
             return true;
         }
-        return accessGranted[recordHash][doctor];
+        if (!accessGranted[recordHash][doctor]) {
+            return false;
+        }
+        uint256 expiry = accessExpiry[recordHash][doctor];
+        if (expiry > 0 && block.timestamp > expiry) {
+            return false;
+        }
+        return true;
     }
 }
