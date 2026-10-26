@@ -20,8 +20,11 @@ import {
   Sparkles,
   Zap,
   Sun,
-  Moon
+  Moon,
+  Search,
+  Command
 } from "lucide-react";
+import CommandPalette from "./CommandPalette";
 
 export default function Navbar() {
   const {
@@ -41,8 +44,20 @@ export default function Navbar() {
 
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState("light");
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsCommandOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     // Default to clean clinical light mode (Apple Health / Epic MyChart standard)
@@ -138,6 +153,21 @@ export default function Navbar() {
 
           {/* Right Action / Wallet / Theme Toggle / Demo Status */}
           <div className="flex items-center gap-2.5">
+            {/* Linear Command Palette Trigger */}
+            <button
+              id="command-palette-btn"
+              type="button"
+              onClick={() => setIsCommandOpen(true)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs"
+              title="Linear OmniSearch (⌘K or Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* Theme Switcher Button */}
             <button
               id="theme-toggle-btn"
@@ -252,6 +282,9 @@ export default function Navbar() {
           </button>
         </div>
       )}
+
+      {/* Linear-Style Global OmniSearch Command Palette */}
+      <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} />
     </header>
   );
 }

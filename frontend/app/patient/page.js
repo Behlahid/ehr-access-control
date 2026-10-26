@@ -791,13 +791,6 @@ export default function PatientDashboard() {
         </div>
         <ActivityFeed key={refreshTrigger} />
       </div>
-            <p className="text-xs text-slate-400">
-              Cryptographically signed transaction history (Access Grants, Revocations, Record Registrations, and Consent Changes).
-            </p>
-          </div>
-        </div>
-        <ActivityFeed key={refreshTrigger} />
-      </div>
     </div>
   );
 }
