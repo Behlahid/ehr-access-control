@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 
-// Default deployed address on local hardhat / Sepolia (update as needed when redeploying)
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+// Default deployed address on Ethereum Sepolia Testnet
+export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xe8B53b7F261EACF858093147df33C56414bE9557";
 
 export const CONTRACT_ABI = [
   "event RecordAdded(bytes32 indexed recordHash, address indexed patient, uint256 timestamp)",
