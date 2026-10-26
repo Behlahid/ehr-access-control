@@ -102,16 +102,11 @@ export default function PatientDashboard() {
   const [notification, setNotification] = useState(null);
 
   const fetchMyRecords = useCallback(async () => {
-    if (!account && !isDemoMode) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
 
-      // If in Demo Mode or no live runner, load rich clinical demo records
-      if (isDemoMode || (!signer && !provider)) {
+      // If not connected to MetaMask, or in Demo Mode, or without a live signer, immediately load the rich clinical demo records
+      if (!account || isDemoMode || (!signer && !provider)) {
         setRecords(DEMO_PATIENT_RECORDS);
         setLoading(false);
         return;
