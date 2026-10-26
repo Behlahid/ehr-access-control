@@ -22,9 +22,11 @@ import {
   Sun,
   Moon,
   Search,
-  Command
+  Command,
+  BookOpen
 } from "lucide-react";
 import CommandPalette from "./CommandPalette";
+import JargonTranslatorModal from "./JargonTranslatorModal";
 
 export default function Navbar() {
   const {
@@ -45,6 +47,7 @@ export default function Navbar() {
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState("light");
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isJargonOpen, setIsJargonOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -53,6 +56,9 @@ export default function Navbar() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setIsCommandOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setIsJargonOpen((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -153,6 +159,21 @@ export default function Navbar() {
 
           {/* Right Action / Wallet / Theme Toggle / Demo Status */}
           <div className="flex items-center gap-2.5">
+            {/* Plain-Language Healthtech Guide (Jargon Translation Matrix) */}
+            <button
+              id="jargon-matrix-btn"
+              type="button"
+              onClick={() => setIsJargonOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs"
+              title="Patient Plain-Language Guide / Jargon Matrix (⌘J or Ctrl+J)"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+              <span className="hidden md:inline">Plain-Language</span>
+              <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                ⌘J
+              </kbd>
+            </button>
+
             {/* Linear Command Palette Trigger */}
             <button
               id="command-palette-btn"
@@ -284,7 +305,17 @@ export default function Navbar() {
       )}
 
       {/* Linear-Style Global OmniSearch Command Palette */}
-      <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} />
+      <CommandPalette
+        isOpen={isCommandOpen}
+        onClose={() => setIsCommandOpen(false)}
+        onOpenJargon={() => setIsJargonOpen(true)}
+      />
+
+      {/* Jargon Translation Matrix Modal */}
+      <JargonTranslatorModal
+        isOpen={isJargonOpen}
+        onClose={() => setIsJargonOpen(false)}
+      />
     </header>
   );
 }

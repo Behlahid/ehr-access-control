@@ -16,18 +16,67 @@ import {
   Layers,
   FileCheck,
   KeyRound,
-  Filter
+  Filter,
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 
+const SIMULATED_AUDIT_LOGS = [
+  {
+    type: "EmergencyBreakGlass",
+    title: "Emergency Break-Glass Override",
+    recordHash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+    doctor: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    patient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    justification: "Acute trauma admission: Hypovolemic shock following motor vehicle incident. Urgent allergy panel and angiography review.",
+    blockNumber: 6819435,
+    transactionHash: "0xec914a801a91e8401928301928301928301928301928301928301928301928300",
+    details: 'Forensic emergency override executed by Dr. Sarah Chen, MD: "Acute trauma admission: Hypovolemic shock following motor vehicle incident."',
+  },
+  {
+    type: "AccessGranted",
+    title: "Physician Authorized",
+    recordHash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+    patient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    doctor: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    blockNumber: 6819420,
+    transactionHash: "0x49f2b801a91e8401928301928301928301928301928301928301928301928301",
+    details: "Granted 30-day viewing permission to Dr. Sarah Chen, MD (Mount Sinai Heart)",
+  },
+  {
+    type: "FLEligibilityChanged",
+    title: "FL Consent Active",
+    recordHash: "0x1111111111111111111111111111111111111111111111111111111111111111",
+    patient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    eligible: true,
+    blockNumber: 6819385,
+    transactionHash: "0x12a93801a91e8401928301928301928301928301928301928301928301928302",
+    details: "Federated Learning status updated to ACTIVE (Consented for AI research)",
+  },
+  {
+    type: "RecordAdded",
+    title: "Record Anchored",
+    recordHash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+    patient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    blockNumber: 6819210,
+    transactionHash: "0x7b29a1f10928301928301928301928301928301928301928301928301928303",
+    details: "Anchored AES-256 encrypted multihash to Ethereum smart contract (Slot Packed)",
+  },
+];
+
 export default function ActivityFeed({ refreshTrigger }) {
-  const { provider, signer, account } = useWeb3();
+  const { provider, signer, account, isDemoMode } = useWeb3();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState("all");
 
   const fetchEvents = useCallback(async () => {
-    if (!account || (!provider && !signer)) return;
+    if (!account || (!provider && !signer) || isDemoMode) {
+      setEvents(SIMULATED_AUDIT_LOGS);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -38,23 +87,29 @@ export default function ActivityFeed({ refreshTrigger }) {
       // Create indexed event filters
       const recordAddedFilter = contract.filters.RecordAdded(null, account);
       const accessGrantedFilter = contract.filters.AccessGranted(null, account, null);
+      const accessGrantedExpiryFilter = contract.filters.AccessGrantedWithExpiry(null, account, null);
       const accessRevokedFilter = contract.filters.AccessRevoked(null, account, null);
       const accessRequestedFilter = contract.filters.AccessRequested(null, null, account);
       const flChangedFilter = contract.filters.FLEligibilityChanged(null, account);
+      const emergencyFilter = contract.filters.EmergencyBreakGlass(null, null, account);
 
       // Fetch all event logs
       const [
         recordAddedLogs,
         accessGrantedLogs,
+        accessGrantedExpiryLogs,
         accessRevokedLogs,
         accessRequestedLogs,
         flChangedLogs,
+        emergencyLogs,
       ] = await Promise.all([
         contract.queryFilter(recordAddedFilter, 0, "latest").catch(() => []),
         contract.queryFilter(accessGrantedFilter, 0, "latest").catch(() => []),
+        contract.queryFilter(accessGrantedExpiryFilter, 0, "latest").catch(() => []),
         contract.queryFilter(accessRevokedFilter, 0, "latest").catch(() => []),
         contract.queryFilter(accessRequestedFilter, 0, "latest").catch(() => []),
         contract.queryFilter(flChangedFilter, 0, "latest").catch(() => []),
+        contract.queryFilter(emergencyFilter, 0, "latest").catch(() => []),
       ]);
 
       const formattedEvents = [];
@@ -125,6 +180,35 @@ export default function ActivityFeed({ refreshTrigger }) {
         });
       }
 
+      for (const log of accessGrantedExpiryLogs) {
+        formattedEvents.push({
+          type: "AccessGrantedWithExpiry",
+          title: "Time-Bound Authorization",
+          recordHash: log.args[0],
+          patient: log.args[1],
+          doctor: log.args[2],
+          expiry: log.args[3] ? Number(log.args[3]) : null,
+          blockNumber: log.blockNumber,
+          transactionHash: log.transactionHash,
+          details: `Granted time-limited consultation to Dr. ${shortenAddress(log.args[2])} until ${formatTimestamp(Number(log.args[3]))}`,
+        });
+      }
+
+      for (const log of emergencyLogs) {
+        formattedEvents.push({
+          type: "EmergencyBreakGlass",
+          title: "Emergency Break-Glass Override",
+          recordHash: log.args[0],
+          doctor: log.args[1],
+          patient: log.args[2],
+          justification: log.args[3],
+          timestamp: log.args[4] ? Number(log.args[4]) : null,
+          blockNumber: log.blockNumber,
+          transactionHash: log.transactionHash,
+          details: `Forensic trauma override executed by Dr. ${shortenAddress(log.args[1])}: "${log.args[3]}"`,
+        });
+      }
+
       // Sort descending by blockNumber
       formattedEvents.sort((a, b) => b.blockNumber - a.blockNumber);
       setEvents(formattedEvents);
@@ -185,6 +269,20 @@ export default function ActivityFeed({ refreshTrigger }) {
           border: eligible ? "border-purple-500/30" : "border-slate-700",
           bg: eligible ? "bg-purple-500/10" : "bg-slate-800",
         };
+      case "EmergencyBreakGlass":
+        return {
+          icon: AlertTriangle,
+          color: "text-rose-600 dark:text-rose-400",
+          border: "border-rose-200 dark:border-rose-500/30",
+          bg: "bg-rose-50 dark:bg-rose-500/10",
+        };
+      case "AccessGrantedWithExpiry":
+        return {
+          icon: Clock,
+          color: "text-amber-600 dark:text-amber-400",
+          border: "border-amber-200 dark:border-amber-500/30",
+          bg: "bg-amber-50 dark:bg-amber-500/10",
+        };
       default:
         return {
           icon: Activity,
@@ -199,35 +297,35 @@ export default function ActivityFeed({ refreshTrigger }) {
     <div className="space-y-4">
       {/* Feed Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-1.5 p-1 bg-obsidian-950 rounded-lg border border-slate-800 font-mono">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono">
           <button
             onClick={() => setFilterType("all")}
-            className={`px-2.5 py-1 rounded transition-all ${
-              filterType === "all" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              filterType === "all" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-semibold" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             All ({events.length})
           </button>
           <button
             onClick={() => setFilterType("records")}
-            className={`px-2.5 py-1 rounded transition-all ${
-              filterType === "records" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              filterType === "records" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-semibold" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             Anchors
           </button>
           <button
             onClick={() => setFilterType("access")}
-            className={`px-2.5 py-1 rounded transition-all ${
-              filterType === "access" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              filterType === "access" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-semibold" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             Permissions
           </button>
           <button
             onClick={() => setFilterType("fl")}
-            className={`px-2.5 py-1 rounded transition-all ${
-              filterType === "fl" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              filterType === "fl" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-semibold" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             FL Consent
@@ -237,15 +335,15 @@ export default function ActivityFeed({ refreshTrigger }) {
         <button
           onClick={fetchEvents}
           disabled={loading}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-white font-mono text-[11px] self-end sm:self-auto"
+          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-mono text-[11px] self-end sm:self-auto cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-cyan-400" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-cyan-600 dark:text-cyan-400" : ""}`} />
           <span>Sync Events</span>
         </button>
       </div>
 
       {loading && events.length === 0 ? (
-        <div className="py-12 text-center text-xs font-mono text-slate-400 animate-pulse">
+        <div className="py-12 text-center text-xs font-mono text-slate-500 dark:text-slate-400 animate-pulse">
           Indexing smart contract event logs...
         </div>
       ) : filteredEvents.length === 0 ? (
@@ -261,7 +359,7 @@ export default function ActivityFeed({ refreshTrigger }) {
             return (
               <div
                 key={`${ev.transactionHash}-${index}`}
-                className="p-3 rounded-xl bg-obsidian-950/70 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+                className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-2xs"
               >
                 <div className="flex items-start sm:items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${badge.bg} border ${badge.border} ${badge.color}`}>
@@ -269,17 +367,17 @@ export default function ActivityFeed({ refreshTrigger }) {
                   </div>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">{ev.title}</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{ev.title}</span>
                       <span className="font-mono text-[10px] text-slate-500">
                         Block #{ev.blockNumber}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 font-mono">{ev.details}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-mono">{ev.details}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 font-mono text-[11px] text-slate-500 shrink-0 pl-11 sm:pl-0">
-                  <span className="text-slate-400">
+                  <span className="text-slate-500 dark:text-slate-400">
                     Tx: {ev.transactionHash ? shortenHash(ev.transactionHash) : "N/A"}
                   </span>
                 </div>

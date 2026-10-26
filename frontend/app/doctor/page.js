@@ -8,6 +8,7 @@ import { cidToBytes32, bytes32ToCid, shortenAddress, shortenHash, parseContractE
 import DecryptModal from "../../components/DecryptModal";
 import Notification from "../../components/Notification";
 import CryptographicAuditDrawer from "../../components/CryptographicAuditDrawer";
+import JargonTranslatorModal from "../../components/JargonTranslatorModal";
 import {
   Stethoscope,
   Search,
@@ -30,7 +31,10 @@ import {
   Sparkles,
   ArrowRight,
   Heart,
-  Activity
+  Activity,
+  AlertTriangle,
+  X,
+  BookOpen
 } from "lucide-react";
 
 const DEMO_SHORTCUTS = [
@@ -85,7 +89,14 @@ export default function DoctorDashboard() {
   const [searchResult, setSearchResult] = useState(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isDecryptOpen, setIsDecryptOpen] = useState(false);
+  const [isJargonModalOpen, setIsJargonModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  // Emergency Break-Glass State
+  const [isBreakGlassOpen, setIsBreakGlassOpen] = useState(false);
+  const [breakGlassJustification, setBreakGlassJustification] = useState("");
+  const [isExecutingBreakGlass, setIsExecutingBreakGlass] = useState(false);
+  const [breakGlassError, setBreakGlassError] = useState(null);
 
   const handleCheckAccess = async (e, overrideHash = null) => {
     e?.preventDefault();
@@ -230,8 +241,65 @@ export default function DoctorDashboard() {
     }
   };
 
+  const handleExecuteBreakGlass = async (e) => {
+    e?.preventDefault();
+    if (!searchResult) return;
+    setBreakGlassError(null);
+
+    const justification = breakGlassJustification.trim();
+    if (justification.length < 10) {
+      setBreakGlassError("Clinical justification must be descriptive (minimum 10 characters) for forensic legal audit.");
+      return;
+    }
+
+    if (isDemoMode || !signer) {
+      setIsExecutingBreakGlass(true);
+      setTimeout(() => {
+        setIsExecutingBreakGlass(false);
+        setIsBreakGlassOpen(false);
+        setSearchResult((prev) => ({
+          ...prev,
+          hasPermission: true,
+          isEmergencyOverride: true,
+        }));
+        setNotification({
+          type: "warning",
+          title: "Emergency Break-Glass Override Active",
+          message: `Mandatory emergency access granted for record ${shortenHash(searchResult.recordHash)}. An indelible forensic audit log was anchored on Ethereum. (Demo Mode)`,
+          txHash: "0xec914...breakglass99",
+        });
+      }, 900);
+      return;
+    }
+
+    try {
+      setIsExecutingBreakGlass(true);
+      const contract = getEHRContract(signer);
+      const tx = await contract.breakGlassEmergencyAccess(searchResult.recordHash, justification);
+      const receipt = await tx.wait();
+
+      setIsExecutingBreakGlass(false);
+      setIsBreakGlassOpen(false);
+      setSearchResult((prev) => ({
+        ...prev,
+        hasPermission: true,
+        isEmergencyOverride: true,
+      }));
+      setNotification({
+        type: "warning",
+        title: "Emergency Break-Glass Override Active",
+        message: `Forensic audit log emitted. 24-hour emergency window granted for record ${shortenHash(searchResult.recordHash)}.`,
+        txHash: receipt.hash,
+      });
+    } catch (err) {
+      console.error("Emergency break-glass error:", err);
+      setBreakGlassError(parseContractError(err));
+      setIsExecutingBreakGlass(false);
+    }
+  };
+
   const effectiveAccount = account || "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
-  const isSimulated = !account;
+  const isSimulated = isDemoMode || !signer;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -246,6 +314,102 @@ export default function DoctorDashboard() {
           recordHash={searchResult.recordHash}
           onClose={() => setIsDecryptOpen(false)}
         />
+      )}
+
+      {/* Jargon Translation Matrix Modal */}
+      <JargonTranslatorModal
+        isOpen={isJargonModalOpen}
+        onClose={() => setIsJargonModalOpen(false)}
+      />
+
+      {/* Emergency Break-Glass Modal */}
+      {isBreakGlassOpen && searchResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-rose-300 dark:border-rose-500/40 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Emergency Break-the-Glass Override
+                  </h3>
+                  <p className="text-xs text-rose-600 dark:text-rose-400 font-mono">
+                    Record: {shortenHash(searchResult.recordHash)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsBreakGlassOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Legal / Clinical Warning Box */}
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-amber-900 dark:text-amber-300 text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>MANDATORY FORENSIC AUDIT DISCLOSURE (HIPAA & HL7)</span>
+              </div>
+              <p className="leading-relaxed text-slate-600 dark:text-slate-300">
+                This emergency trauma override bypasses patient consent for 24 hours. Your physician identity and this justification will be <strong>permanently and indelibly recorded on the Ethereum blockchain</strong>. An alert is instantly dispatched to the patient.
+              </p>
+            </div>
+
+            {breakGlassError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-xl text-rose-700 dark:text-rose-300 text-xs font-mono">
+                {breakGlassError}
+              </div>
+            )}
+
+            <form onSubmit={handleExecuteBreakGlass} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Clinical Emergency Justification (Required)
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="e.g. Unconscious acute motor vehicle trauma; requires immediate cardiac angiography & allergy panel to prevent fatal anaphylaxis."
+                  value={breakGlassJustification}
+                  onChange={(e) => setBreakGlassJustification(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 transition-all resize-none outline-none shadow-2xs"
+                />
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Minimum 10 characters required</span>
+                  <button
+                    type="button"
+                    onClick={() => setBreakGlassJustification("Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.")}
+                    className="text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
+                  >
+                    Insert Standard Trauma Reason
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsBreakGlassOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isExecutingBreakGlass || breakGlassJustification.trim().length < 10}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                >
+                  {isExecutingBreakGlass ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  <span>Execute Break-Glass Override</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Physician Terminal Banner */}
@@ -269,12 +433,24 @@ export default function DoctorDashboard() {
           </p>
         </div>
 
-        {isSimulated && (
-          <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-            <span>Clinical Demo Sandbox</span>
-          </span>
-        )}
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsJargonModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            title="Plain-Language Healthtech Dictionary"
+          >
+            <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <span className="hidden sm:inline">Plain-Language Guide</span>
+          </button>
+
+          {isSimulated && (
+            <span className="self-start sm:self-auto px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+              <span>Clinical Demo Sandbox</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Interactive Demo Sandbox Banner */}
@@ -446,24 +622,47 @@ export default function DoctorDashboard() {
             {/* Action Triggers */}
             <div className="pt-2 flex flex-wrap items-center gap-3">
               {searchResult.isRegistered && searchResult.hasPermission && (
-                <button
-                  onClick={() => setIsDecryptOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98]"
-                >
-                  <Unlock className="w-4 h-4" />
-                  <span>Open Clinical Decryption Station</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setIsDecryptOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <Unlock className="w-4 h-4" />
+                    <span>Open Clinical Decryption Station</span>
+                  </button>
+
+                  {searchResult.isEmergencyOverride && (
+                    <span className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold animate-pulse">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Trauma Override Active (24h Forensic Window)</span>
+                    </span>
+                  )}
+                </div>
               )}
 
               {searchResult.isRegistered && !searchResult.hasPermission && (
-                <button
-                  onClick={handleRequestAccess}
-                  disabled={isRequesting}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
-                >
-                  {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  <span>Request Patient Consultation Access</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleRequestAccess}
+                    disabled={isRequesting}
+                    className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>Request Patient Consultation Access</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setBreakGlassJustification("Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.");
+                      setIsBreakGlassOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
+                    title="Epic MyChart Emergency Trauma Protocol"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <span>Emergency Break-Glass Override</span>
+                  </button>
+                </div>
               )}
             </div>
 

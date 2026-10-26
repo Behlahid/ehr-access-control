@@ -21,12 +21,13 @@ const INITIAL_CARE_TEAM = [
     id: "doc-1",
     name: "Dr. Sarah Chen, MD, FACC",
     title: "Attending Cardiologist & Director of Interventional Imaging",
-    institution: "Mount Sinai Hospital • Cardiovascular Center",
-    address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    institution: "St. Jude Heart Institute • Cardiovascular Center",
+    address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     status: "Active Consultation",
     authorizedDate: "Oct 24, 2026",
     expiryDate: "Nov 23, 2026 (30 Days)",
-    accessibleRecords: ["EHR-4029 (Cardiac Angiography)", "EHR-4031 (24h Holter ECG)"],
+    accessibleRecords: ["EHR-82A9 (Cardiac Angiography)", "EHR-2222 (24h Holter ECG)"],
+    primaryRecordHash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
     avatar: "SC",
     color: "from-rose-500 to-amber-500",
   },
@@ -35,11 +36,12 @@ const INITIAL_CARE_TEAM = [
     name: "Dr. Marcus Vance, MD, FAAFP",
     title: "Primary Attending Physician",
     institution: "Metro Health Comprehensive Center",
-    address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
     status: "Primary Care Continuous",
     authorizedDate: "Sep 12, 2026",
     expiryDate: "Perpetual Care Agreement",
-    accessibleRecords: ["All Diagnostic Records & Metabolic Panels"],
+    accessibleRecords: ["EHR-1111 (Metabolic & Lipid Diagnostic Panel)"],
+    primaryRecordHash: "0x1111111111111111111111111111111111111111111111111111111111111111",
     avatar: "MV",
     color: "from-cyan-500 to-blue-500",
   },
@@ -50,6 +52,10 @@ export default function CareTeamRoster({ onRevokeClick, onNotification }) {
   const [revokingId, setRevokingId] = useState(null);
 
   const handleRevoke = (doctor) => {
+    if (onRevokeClick) {
+      onRevokeClick(doctor);
+      return;
+    }
     setRevokingId(doctor.id);
     setTimeout(() => {
       setCareTeam((prev) => prev.filter((d) => d.id !== doctor.id));

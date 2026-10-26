@@ -177,6 +177,7 @@ export function Web3Provider({ children }) {
     setRole(null);
     setIsDemoMode(false);
     setDemoUser(null);
+    localStorage.removeItem("ehr_demo_mode");
   };
 
   const switchNetwork = async (targetChainId = 11155111) => {

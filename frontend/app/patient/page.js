@@ -11,6 +11,7 @@ import Notification from "../../components/Notification";
 import CryptographicAuditDrawer from "../../components/CryptographicAuditDrawer";
 import LabRangeBar from "../../components/LabRangeBar";
 import CareTeamRoster from "../../components/CareTeamRoster";
+import JargonTranslatorModal from "../../components/JargonTranslatorModal";
 import {
   Shield,
   Upload,
@@ -36,7 +37,8 @@ import {
   Heart,
   Activity,
   Stethoscope,
-  Info
+  Info,
+  BookOpen
 } from "lucide-react";
 
 const DEMO_PATIENT_RECORDS = [
@@ -95,10 +97,12 @@ export default function PatientDashboard() {
 
   // Modals state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isJargonModalOpen, setIsJargonModalOpen] = useState(false);
   const [grantRevokeState, setGrantRevokeState] = useState({
     isOpen: false,
     mode: "grant", // 'grant' | 'revoke'
     recordHash: null,
+    doctorAddress: "",
   });
 
   // Toggling state per record
@@ -107,13 +111,24 @@ export default function PatientDashboard() {
   // Notification state
   const [notification, setNotification] = useState(null);
 
+  const getStoredDemoRecords = () => {
+    try {
+      const stored = localStorage.getItem("ehr_demo_records");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEMO_PATIENT_RECORDS;
+  };
+
   const fetchMyRecords = useCallback(async () => {
     try {
       setLoading(true);
 
       // If not connected to MetaMask, or in Demo Mode, or without a live signer, immediately load the rich clinical demo records
       if (!account || isDemoMode || (!signer && !provider)) {
-        setRecords(DEMO_PATIENT_RECORDS);
+        setRecords(getStoredDemoRecords());
         setLoading(false);
         return;
       }
@@ -124,7 +139,7 @@ export default function PatientDashboard() {
       const recordsData = await contract.getMyRecords();
 
       if (recordsData.length === 0 && isDemoMode) {
-        setRecords(DEMO_PATIENT_RECORDS);
+        setRecords(getStoredDemoRecords());
       } else {
         const parsed = recordsData.map((rec) => ({
           ipfsHash: rec.ipfsHash,
@@ -138,7 +153,7 @@ export default function PatientDashboard() {
     } catch (err) {
       console.error("Error fetching my records:", err);
       if (isDemoMode) {
-        setRecords(DEMO_PATIENT_RECORDS);
+        setRecords(getStoredDemoRecords());
       } else {
         setNotification({
           type: "error",
@@ -161,11 +176,15 @@ export default function PatientDashboard() {
     if (isDemoMode || !signer) {
       setTogglingFlHash(recordHash);
       setTimeout(() => {
-        setRecords((prev) =>
-          prev.map((r) =>
+        setRecords((prev) => {
+          const updated = prev.map((r) =>
             r.ipfsHash === recordHash ? { ...r, flEligible: newStatus } : r
-          )
-        );
+          );
+          try {
+            localStorage.setItem("ehr_demo_records", JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
         setNotification({
           type: "success",
           title: newStatus ? "AI Research Consent Active" : "AI Research Consent Paused",
@@ -244,7 +263,7 @@ export default function PatientDashboard() {
     };
   };
 
-  const isSimulated = !account;
+  const isSimulated = isDemoMode || !signer;
 
   const flCount = records.filter((r) => r.flEligible).length;
   const flPercentage = records.length > 0 ? Math.round((flCount / records.length) * 100) : 0;
@@ -274,13 +293,29 @@ export default function PatientDashboard() {
       <UploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={(hash, tx) => {
+        onSuccess={(hash, tx, fileName) => {
           setNotification({
             type: "success",
             title: "Health Record Successfully Anchored",
-            message: `Your medical file was encrypted client-side with AES-GCM-256 and registered on-chain.`,
+            message: `Your medical file ${fileName ? `"${fileName}"` : ""} was encrypted client-side with AES-GCM-256 and registered on-chain.`,
             txHash: tx,
           });
+          if (isDemoMode || !signer) {
+            const newRec = {
+              ipfsHash: hash,
+              owner: account || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+              timestamp: Math.floor(Date.now() / 1000),
+              flEligible: true,
+              cid: bytes32ToCid(hash),
+            };
+            setRecords((prev) => {
+              const updated = [newRec, ...prev];
+              try {
+                localStorage.setItem("ehr_demo_records", JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            });
+          }
           setRefreshTrigger((prev) => prev + 1);
         }}
       />
@@ -289,7 +324,8 @@ export default function PatientDashboard() {
         isOpen={grantRevokeState.isOpen}
         mode={grantRevokeState.mode}
         recordHash={grantRevokeState.recordHash}
-        onClose={() => setGrantRevokeState({ isOpen: false, mode: "grant", recordHash: null })}
+        initialDoctorAddress={grantRevokeState.doctorAddress}
+        onClose={() => setGrantRevokeState({ isOpen: false, mode: "grant", recordHash: null, doctorAddress: "" })}
         onSuccess={(title, msg, tx) => {
           setNotification({
             type: "success",
@@ -299,6 +335,12 @@ export default function PatientDashboard() {
           });
           setRefreshTrigger((prev) => prev + 1);
         }}
+      />
+
+      {/* Jargon Translation Matrix Modal */}
+      <JargonTranslatorModal
+        isOpen={isJargonModalOpen}
+        onClose={() => setIsJargonModalOpen(false)}
       />
 
       {/* Top Header */}
@@ -322,7 +364,17 @@ export default function PatientDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsJargonModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            title="Plain-Language Healthtech Dictionary"
+          >
+            <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <span className="hidden sm:inline">Plain-Language Guide</span>
+          </button>
+
           <button
             onClick={() => setRefreshTrigger((prev) => prev + 1)}
             disabled={loading}
@@ -437,7 +489,17 @@ export default function PatientDashboard() {
       </div>
 
       {activeTab === "careteam" ? (
-        <CareTeamRoster onNotification={(n) => setNotification(n)} />
+        <CareTeamRoster
+          onRevokeClick={(doctor) => {
+            setGrantRevokeState({
+              isOpen: true,
+              mode: "revoke",
+              recordHash: doctor.primaryRecordHash || (records.length > 0 ? records[0].ipfsHash : null),
+              doctorAddress: doctor.address,
+            });
+          }}
+          onNotification={(n) => setNotification(n)}
+        />
       ) : (
         <div className="surface-card rounded-2xl p-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

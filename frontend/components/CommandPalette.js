@@ -17,10 +17,11 @@ import {
   X,
   CornerDownLeft,
   Lock,
-  Stethoscope
+  Stethoscope,
+  BookOpen
 } from "lucide-react";
 
-export default function CommandPalette({ isOpen, onClose }) {
+export default function CommandPalette({ isOpen, onClose, onOpenJargon }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -64,7 +65,7 @@ export default function CommandPalette({ isOpen, onClose }) {
   const toggleTheme = () => {
     const isDark = document.documentElement.classList.toggle("dark");
     try {
-      localStorage.setItem("healthledger_theme", isDark ? "dark" : "light");
+      localStorage.setItem("ehr_theme", isDark ? "dark" : "light");
     } catch (e) {}
   };
 
@@ -99,6 +100,18 @@ export default function CommandPalette({ isOpen, onClose }) {
       iconColor: "text-amber-500",
       shortcut: "T",
       onSelect: () => toggleTheme(),
+    },
+    {
+      id: "action-jargon",
+      category: "Patient Education & Transparency",
+      title: "Open Plain-Language Healthtech Guide (Jargon Translation Matrix)",
+      subtitle: "Plain-English clinical definitions for Web3, cryptographic hashes & AI training terms",
+      icon: BookOpen,
+      iconColor: "text-cyan-500",
+      shortcut: "⌘J",
+      onSelect: () => {
+        if (onOpenJargon) onOpenJargon();
+      },
     },
     // Clinical Records
     {
