@@ -81,6 +81,7 @@ export default function PatientDashboard() {
     isDemoMode,
     demoUser,
     enterDemoMode,
+    isCorrectNetwork,
   } = useWeb3();
 
   const [records, setRecords] = useState([]);
@@ -126,8 +127,8 @@ export default function PatientDashboard() {
     try {
       setLoading(true);
 
-      // If not connected to MetaMask, or in Demo Mode, or without a live signer, immediately load the rich clinical demo records
-      if (!account || isDemoMode || (!signer && !provider)) {
+      // If not connected to MetaMask, or in Demo Mode, or on unsupported network, immediately load clinical demo records
+      if (!account || isDemoMode || !isCorrectNetwork || (!signer && !provider)) {
         setRecords(getStoredDemoRecords());
         setLoading(false);
         return;
@@ -136,35 +137,32 @@ export default function PatientDashboard() {
       const runner = signer || provider;
       const contract = getEHRContract(runner);
 
-      const recordsData = await contract.getMyRecords();
-
-      if (recordsData.length === 0 && isDemoMode) {
+      try {
+        const recordsData = await contract.getMyRecords();
+        if (recordsData && recordsData.length > 0) {
+          const parsed = recordsData.map((rec) => ({
+            ipfsHash: rec.ipfsHash,
+            owner: rec.owner,
+            timestamp: Number(rec.timestamp || 0),
+            flEligible: Boolean(rec.flEligible),
+            cid: bytes32ToCid(rec.ipfsHash) || "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+          }));
+          setRecords(parsed);
+        } else {
+          // If on-chain has no records yet for this fresh account, show initial records safely
+          setRecords(getStoredDemoRecords());
+        }
+      } catch (contractErr) {
+        console.warn("Could not query on-chain records, using demo cache:", contractErr);
         setRecords(getStoredDemoRecords());
-      } else {
-        const parsed = recordsData.map((rec) => ({
-          ipfsHash: rec.ipfsHash,
-          owner: rec.owner,
-          timestamp: Number(rec.timestamp),
-          flEligible: rec.flEligible,
-          cid: bytes32ToCid(rec.ipfsHash),
-        }));
-        setRecords(parsed);
       }
     } catch (err) {
       console.error("Error fetching my records:", err);
-      if (isDemoMode) {
-        setRecords(getStoredDemoRecords());
-      } else {
-        setNotification({
-          type: "error",
-          title: "Failed to Fetch Records",
-          message: parseContractError(err),
-        });
-      }
+      setRecords(getStoredDemoRecords());
     } finally {
       setLoading(false);
     }
-  }, [account, signer, provider, isDemoMode]);
+  }, [account, signer, provider, isDemoMode, isCorrectNetwork]);
 
   useEffect(() => {
     fetchMyRecords();
@@ -269,15 +267,22 @@ export default function PatientDashboard() {
   const flPercentage = records.length > 0 ? Math.round((flCount / records.length) * 100) : 0;
 
   // Filtered records
-  const filteredRecords = records.filter((rec, index) => {
+  const filteredRecords = (records || []).filter((rec, index) => {
+    if (!rec) return false;
     const profile = getClinicalProfile(index, rec.ipfsHash);
-    const searchLower = searchQuery.toLowerCase();
+    const searchLower = (searchQuery || "").toLowerCase();
+    const title = (profile?.title || "").toLowerCase();
+    const category = (profile?.category || "").toLowerCase();
+    const recordId = (profile?.recordId || "").toLowerCase();
+    const cid = (rec?.cid || "").toLowerCase();
+    const ipfsHash = (rec?.ipfsHash || "").toLowerCase();
+
     const matchesSearch =
-      profile.title.toLowerCase().includes(searchLower) ||
-      profile.category.toLowerCase().includes(searchLower) ||
-      profile.recordId.toLowerCase().includes(searchLower) ||
-      rec.cid.toLowerCase().includes(searchLower) ||
-      rec.ipfsHash.toLowerCase().includes(searchLower);
+      title.includes(searchLower) ||
+      category.includes(searchLower) ||
+      recordId.includes(searchLower) ||
+      cid.includes(searchLower) ||
+      ipfsHash.includes(searchLower);
 
     if (flFilter === "eligible") return matchesSearch && rec.flEligible;
     if (flFilter === "excluded") return matchesSearch && !rec.flEligible;

@@ -65,14 +65,14 @@ const SIMULATED_AUDIT_LOGS = [
 ];
 
 export default function ActivityFeed({ refreshTrigger }) {
-  const { provider, signer, account, isDemoMode } = useWeb3();
+  const { provider, signer, account, isDemoMode, isCorrectNetwork } = useWeb3();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState("all");
 
   const fetchEvents = useCallback(async () => {
-    if (!account || (!provider && !signer) || isDemoMode) {
+    if (!account || (!provider && !signer) || isDemoMode || !isCorrectNetwork) {
       setEvents(SIMULATED_AUDIT_LOGS);
       setLoading(false);
       return;
@@ -84,16 +84,17 @@ export default function ActivityFeed({ refreshTrigger }) {
       const runner = signer || provider;
       const contract = getEHRContract(runner);
 
-      // Create indexed event filters
-      const recordAddedFilter = contract.filters.RecordAdded(null, account);
-      const accessGrantedFilter = contract.filters.AccessGranted(null, account, null);
-      const accessGrantedExpiryFilter = contract.filters.AccessGrantedWithExpiry(null, account, null);
-      const accessRevokedFilter = contract.filters.AccessRevoked(null, account, null);
-      const accessRequestedFilter = contract.filters.AccessRequested(null, null, account);
-      const flChangedFilter = contract.filters.FLEligibilityChanged(null, account);
-      const emergencyFilter = contract.filters.EmergencyBreakGlass(null, null, account);
+      // Create indexed event filters safely
+      const recordAddedFilter = contract.filters?.RecordAdded ? contract.filters.RecordAdded(null, account) : null;
+      const accessGrantedFilter = contract.filters?.AccessGranted ? contract.filters.AccessGranted(null, account, null) : null;
+      const accessGrantedExpiryFilter = contract.filters?.AccessGrantedWithExpiry ? contract.filters.AccessGrantedWithExpiry(null, account, null) : null;
+      const accessRevokedFilter = contract.filters?.AccessRevoked ? contract.filters.AccessRevoked(null, account, null) : null;
+      const accessRequestedFilter = contract.filters?.AccessRequested ? contract.filters.AccessRequested(null, null, account) : null;
+      const flChangedFilter = contract.filters?.FLEligibilityChanged ? contract.filters.FLEligibilityChanged(null, account) : null;
+      const emergencyFilter = contract.filters?.EmergencyBreakGlass ? contract.filters.EmergencyBreakGlass(null, null, account) : null;
 
-      // Fetch all event logs
+      // Fetch all event logs with safe block range (-5000)
+      const fromBlock = -5000;
       const [
         recordAddedLogs,
         accessGrantedLogs,
@@ -103,13 +104,13 @@ export default function ActivityFeed({ refreshTrigger }) {
         flChangedLogs,
         emergencyLogs,
       ] = await Promise.all([
-        contract.queryFilter(recordAddedFilter, 0, "latest").catch(() => []),
-        contract.queryFilter(accessGrantedFilter, 0, "latest").catch(() => []),
-        contract.queryFilter(accessGrantedExpiryFilter, 0, "latest").catch(() => []),
-        contract.queryFilter(accessRevokedFilter, 0, "latest").catch(() => []),
-        contract.queryFilter(accessRequestedFilter, 0, "latest").catch(() => []),
-        contract.queryFilter(flChangedFilter, 0, "latest").catch(() => []),
-        contract.queryFilter(emergencyFilter, 0, "latest").catch(() => []),
+        recordAddedFilter ? contract.queryFilter(recordAddedFilter, fromBlock, "latest").catch(() => []) : [],
+        accessGrantedFilter ? contract.queryFilter(accessGrantedFilter, fromBlock, "latest").catch(() => []) : [],
+        accessGrantedExpiryFilter ? contract.queryFilter(accessGrantedExpiryFilter, fromBlock, "latest").catch(() => []) : [],
+        accessRevokedFilter ? contract.queryFilter(accessRevokedFilter, fromBlock, "latest").catch(() => []) : [],
+        accessRequestedFilter ? contract.queryFilter(accessRequestedFilter, fromBlock, "latest").catch(() => []) : [],
+        flChangedFilter ? contract.queryFilter(flChangedFilter, fromBlock, "latest").catch(() => []) : [],
+        emergencyFilter ? contract.queryFilter(emergencyFilter, fromBlock, "latest").catch(() => []) : [],
       ]);
 
       const formattedEvents = [];
