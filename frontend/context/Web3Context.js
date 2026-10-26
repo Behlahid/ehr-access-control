@@ -13,10 +13,14 @@ const Web3Context = createContext({
   isConnecting: false,
   role: null,
   error: null,
+  isDemoMode: false,
+  demoUser: null,
   connectWallet: async () => {},
   disconnect: () => {},
   switchNetwork: async () => {},
   setRole: () => {},
+  enterDemoMode: () => {},
+  exitDemoMode: () => {},
 });
 
 export const SUPPORTED_NETWORKS = {
@@ -24,6 +28,26 @@ export const SUPPORTED_NETWORKS = {
   1337: "Localhost",
   11155111: "Ethereum Sepolia Testnet",
   1: "Ethereum Mainnet",
+};
+
+export const DEMO_PROFILES = {
+  doctor: {
+    address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    name: "Dr. Sarah Chen, MD",
+    roleTitle: "Chief of Clinical Cardiology",
+    organization: "St. Jude Heart Institute",
+    licenseNumber: "MED-90281-NY",
+    department: "Cardiovascular Telemetry & Diagnostics",
+  },
+  patient: {
+    address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    name: "Alex Mercer",
+    roleTitle: "Patient Member",
+    organization: "Metro Health System",
+    mrn: "MRN-9482-A",
+    dob: "August 14, 1972",
+    bloodType: "O-Positive",
+  },
 };
 
 export function Web3Provider({ children }) {
@@ -37,7 +61,11 @@ export function Web3Provider({ children }) {
   const [role, setRoleState] = useState(null);
   const [error, setError] = useState(null);
 
-  // Load saved role from localStorage
+  // Interactive Demo Mode State
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoUser, setDemoUser] = useState(null);
+
+  // Load saved role and demo preferences
   useEffect(() => {
     const savedRole = localStorage.getItem("ehr_user_role");
     if (savedRole) {
@@ -52,6 +80,23 @@ export function Web3Provider({ children }) {
     } else {
       localStorage.removeItem("ehr_user_role");
     }
+  };
+
+  const enterDemoMode = (targetRole = "doctor") => {
+    setIsDemoMode(true);
+    setRole(targetRole);
+    const profile = DEMO_PROFILES[targetRole] || DEMO_PROFILES.doctor;
+    setAccount(profile.address);
+    setDemoUser(profile);
+    setNetworkName("Simulated Clinical Sandbox");
+    setIsCorrectNetwork(true);
+  };
+
+  const exitDemoMode = () => {
+    setIsDemoMode(false);
+    setDemoUser(null);
+    setAccount(null);
+    setNetworkName("");
   };
 
   const handleNetworkChange = useCallback((id) => {
@@ -71,6 +116,8 @@ export function Web3Provider({ children }) {
       setSigner(null);
       setError("Please connect your MetaMask wallet.");
     } else {
+      setIsDemoMode(false);
+      setDemoUser(null);
       const selected = accounts[0];
       setAccount(selected);
       setError(null);
@@ -85,14 +132,15 @@ export function Web3Provider({ children }) {
 
   const connectWallet = async () => {
     if (typeof window === "undefined" || !window.ethereum) {
-      setError("MetaMask is not installed. Please install MetaMask to use this dApp.");
-      alert("MetaMask not detected. Please install the MetaMask browser extension.");
+      setError("MetaMask is not installed. You can use 'Enter Clinical Demo Mode' to explore the full platform!");
       return;
     }
 
     try {
       setIsConnecting(true);
       setError(null);
+      setIsDemoMode(false);
+      setDemoUser(null);
 
       const browserProvider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await browserProvider.send("eth_requestAccounts", []);
@@ -115,6 +163,8 @@ export function Web3Provider({ children }) {
     setAccount(null);
     setSigner(null);
     setRole(null);
+    setIsDemoMode(false);
+    setDemoUser(null);
   };
 
   const switchNetwork = async (targetChainId = 11155111) => {
@@ -127,7 +177,6 @@ export function Web3Provider({ children }) {
         params: [{ chainId: hexChainId }],
       });
     } catch (switchError) {
-      // Chain not added to metamask
       if (switchError.code === 4902 && targetChainId === 11155111) {
         try {
           await window.ethereum.request({
@@ -156,7 +205,6 @@ export function Web3Provider({ children }) {
     window.ethereum.on("accountsChanged", handleAccountsChanged);
     window.ethereum.on("chainChanged", handleNetworkChange);
 
-    // Initial silent check
     const checkInitialConnection = async () => {
       try {
         const browserProvider = new ethers.BrowserProvider(window.ethereum);
@@ -196,10 +244,14 @@ export function Web3Provider({ children }) {
         isConnecting,
         role,
         error,
+        isDemoMode,
+        demoUser,
         connectWallet,
         disconnect,
         switchNetwork,
         setRole,
+        enterDemoMode,
+        exitDemoMode,
       }}
     >
       {children}

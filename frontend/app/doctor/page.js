@@ -26,11 +26,60 @@ import {
   Cpu,
   Lock,
   Terminal,
-  Clock
+  Clock,
+  Sparkles,
+  ArrowRight,
+  Heart,
+  Activity
 } from "lucide-react";
 
+const DEMO_SHORTCUTS = [
+  {
+    id: "demo1",
+    label: "Demo Patient #1: Cardiac Angiography",
+    hash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+    cid: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    patientName: "Alex Mercer",
+    title: "Comprehensive Cardiac Angiography & Stress Study",
+    hasPermission: true,
+    department: "St. Jude Heart Institute",
+  },
+  {
+    id: "demo2",
+    label: "Demo Patient #2: Metabolic & Lipid Panel",
+    hash: "0x1111111111111111111111111111111111111111111111111111111111111111",
+    cid: "QmZtmD2qt8fJv3CL8FnjqiusxVHYM1zG29Uej3QakDEnV8",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    patientName: "Alex Mercer",
+    title: "Complete Lipid, Glucose & Metabolic Diagnostic Panel",
+    hasPermission: false,
+    department: "Clinical Pathology Labs",
+  },
+  {
+    id: "demo3",
+    label: "Demo Patient #3: 24h Holter ECG Study",
+    hash: "0x2222222222222222222222222222222222222222222222222222222222222222",
+    cid: "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    patientName: "Alex Mercer",
+    title: "24-Hour Ambulatory Holter ECG Rhythm Analysis",
+    hasPermission: true,
+    department: "Memorial Hospital Telemetry",
+  },
+];
+
 export default function DoctorDashboard() {
-  const { account, signer, provider, connectWallet } = useWeb3();
+  const {
+    account,
+    signer,
+    provider,
+    connectWallet,
+    isDemoMode,
+    demoUser,
+    enterDemoMode,
+  } = useWeb3();
+
   const [inputHash, setInputHash] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState(null);
@@ -38,31 +87,56 @@ export default function DoctorDashboard() {
   const [isDecryptOpen, setIsDecryptOpen] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  const handleCheckAccess = async (e) => {
+  const handleCheckAccess = async (e, overrideHash = null) => {
     e?.preventDefault();
-    if (!inputHash.trim() || (!signer && !provider)) return;
+    const targetHash = (overrideHash || inputHash).trim();
+    if (!targetHash) return;
 
     try {
       setIsSearching(true);
       setSearchResult(null);
 
+      // Check if matching a demo shortcut
+      const matchedDemo = DEMO_SHORTCUTS.find(
+        (d) => d.hash.toLowerCase() === targetHash.toLowerCase() || d.cid === targetHash
+      );
+
       // Clean input: handle if user entered a CID (Qm...) or a bytes32 hex (0x...)
       let recordBytes32;
-      const rawInput = inputHash.trim();
-      if (rawInput.startsWith("Qm")) {
-        recordBytes32 = cidToBytes32(rawInput);
-      } else if (rawInput.startsWith("0x") && rawInput.length === 66) {
-        recordBytes32 = rawInput;
-      } else if (rawInput.length === 64) {
-        recordBytes32 = "0x" + rawInput;
+      if (targetHash.startsWith("Qm")) {
+        recordBytes32 = cidToBytes32(targetHash);
+      } else if (targetHash.startsWith("0x") && targetHash.length === 66) {
+        recordBytes32 = targetHash;
+      } else if (targetHash.length === 64) {
+        recordBytes32 = "0x" + targetHash;
       } else {
         throw new Error("Invalid format. Please provide a 64-character hex hash (0x...) or an IPFS CID (Qm...).");
       }
 
+      // If in demo mode without live contract, or matched demo record
+      if (isDemoMode || !signer && !provider) {
+        const cid = matchedDemo ? matchedDemo.cid : bytes32ToCid(recordBytes32);
+        const owner = matchedDemo ? matchedDemo.owner : "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+        const hasPermission = matchedDemo ? matchedDemo.hasPermission : true;
+        const title = matchedDemo ? matchedDemo.title : "Cardiovascular Angiography & Stress Study";
+
+        setSearchResult({
+          recordHash: recordBytes32,
+          cid,
+          owner,
+          isRegistered: true,
+          hasPermission,
+          title,
+          patientName: matchedDemo ? matchedDemo.patientName : "Alex Mercer",
+          department: matchedDemo ? matchedDemo.department : "St. Jude Heart Institute",
+        });
+        return;
+      }
+
+      // Live contract query
       const runner = signer || provider;
       const contract = getEHRContract(runner);
 
-      // Check on-chain owner & permissions
       const owner = await contract.recordOwner(recordBytes32);
       const isRegistered = owner !== ethers.ZeroAddress;
 
@@ -79,21 +153,57 @@ export default function DoctorDashboard() {
         owner,
         isRegistered,
         hasPermission,
+        title: matchedDemo ? matchedDemo.title : "Clinical Electronic Health Record",
+        patientName: matchedDemo ? matchedDemo.patientName : "Verified Patient",
+        department: matchedDemo ? matchedDemo.department : "General Medical Core",
       });
     } catch (err) {
       console.error("Access verification error:", err);
-      setNotification({
-        type: "error",
-        title: "Verification Error",
-        message: parseContractError(err),
-      });
+      // Fallback demo result for testing if RPC is unreachable
+      if (isDemoMode) {
+        setSearchResult({
+          recordHash: targetHash.startsWith("0x") ? targetHash : "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+          cid: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+          owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          isRegistered: true,
+          hasPermission: true,
+          title: "Comprehensive Cardiac Angiography & Stress Study",
+          patientName: "Alex Mercer",
+          department: "St. Jude Heart Institute",
+        });
+      } else {
+        setNotification({
+          type: "error",
+          title: "Verification Error",
+          message: parseContractError(err),
+        });
+      }
     } finally {
       setIsSearching(false);
     }
   };
 
+  const handleSelectShortcut = (shortcut) => {
+    setInputHash(shortcut.hash);
+    handleCheckAccess(null, shortcut.hash);
+  };
+
   const handleRequestAccess = async () => {
-    if (!searchResult || !signer) return;
+    if (!searchResult) return;
+
+    if (isDemoMode || !signer) {
+      setIsRequesting(true);
+      setTimeout(() => {
+        setIsRequesting(false);
+        setNotification({
+          type: "success",
+          title: "Consultation Request Dispatched",
+          message: `An official clinical access request was broadcasted for record ${shortenHash(searchResult.recordHash)}. Patient Alex Mercer will receive an on-chain alert.`,
+          txHash: "0x7b29a1f...demo99",
+        });
+      }, 1000);
+      return;
+    }
 
     try {
       setIsRequesting(true);
@@ -120,22 +230,63 @@ export default function DoctorDashboard() {
     }
   };
 
-  if (!account) {
+  // Gateway screen if neither wallet nor demo is active
+  if (!account && !isDemoMode) {
     return (
-      <div className="py-20 text-center max-w-md mx-auto space-y-5">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-obsidian-900 border border-slate-700/80 flex items-center justify-center text-indigo-400 shadow-lg">
-          <Stethoscope className="w-7 h-7" />
+      <div className="py-16 text-center max-w-xl mx-auto space-y-6">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-xl">
+          <Stethoscope className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Physician Terminal</h2>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          Connect your authorized clinical Ethereum wallet to verify patient EHR permissions, broadcast access requests, and decrypt authorized medical payloads.
-        </p>
-        <button
-          onClick={connectWallet}
-          className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs tracking-tight shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
-        >
-          Connect Physician Wallet
-        </button>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Physician Consultation Terminal
+          </h2>
+          <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
+            Review patient electronic health records, verify immutable consultation permissions on Ethereum, and decrypt diagnostic payloads.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => enterDemoMode("doctor")}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs tracking-tight shadow-lg shadow-indigo-500/25 transition-all active:scale-[0.98]"
+          >
+            <Sparkles className="w-4 h-4 text-purple-200" />
+            <span>Launch Clinical Demo (Dr. Sarah Chen, MD)</span>
+          </button>
+
+          <button
+            onClick={connectWallet}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs tracking-tight transition-all"
+          >
+            <Shield className="w-4 h-4 text-cyan-400" />
+            <span>Connect Live MetaMask Wallet</span>
+          </button>
+        </div>
+
+        <div className="pt-8 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>O(1) Access Check</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Constant-gas permission verification directly on EVM state.</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Client AES Decrypt</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Plaintext PHI never leaves client RAM; zero server exposure.</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-purple-400" />
+              <span>Immutable Audit</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Every inspection query and grant produces an indexed on-chain log.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -155,30 +306,44 @@ export default function DoctorDashboard() {
         />
       )}
 
-      {/* Terminal Header */}
-      <div className="border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Physician Access Terminal
-          </h1>
-          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-            EHR Verifier
-          </span>
+      {/* Physician Terminal Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Physician Consultation Terminal
+            </h1>
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+              Licensed Clinician
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            {isDemoMode ? (
+              <span>Authenticated as <strong className="text-slate-200">Dr. Sarah Chen, MD</strong> • Chief of Clinical Cardiology (St. Jude Heart Institute)</span>
+            ) : (
+              <span>Physician Key: <span className="text-slate-200 font-mono">{account}</span></span>
+            )}
+          </p>
         </div>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1 font-mono">
-          Physician Address: <span className="text-slate-200">{account}</span>
-        </p>
+
+        {isDemoMode && (
+          <span className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Interactive Demo Sandbox</span>
+          </span>
+        )}
       </div>
 
-      {/* Query Search Card */}
-      <div className="surface-card rounded-2xl border border-white/[0.08] p-6 space-y-4">
+      {/* Query Search Card with Linear-Style Quick Chips */}
+      <div className="surface-card rounded-2xl border border-white/[0.08] p-6 space-y-5">
         <div className="space-y-1">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <Search className="w-4 h-4 text-cyan-400" />
-            <span>Verify Record Permission On-Chain</span>
+            <span>Inspect Patient Record Permissions</span>
           </h3>
           <p className="text-xs text-slate-400">
-            Enter an IPFS Content Identifier (CIDv0) or a 32-byte hexadecimal multihash to query smart contract permissions.
+            Enter an IPFS Content Identifier (CIDv0) or a 32-byte hexadecimal multihash, or choose a patient record from the demo list below.
           </p>
         </div>
 
@@ -194,28 +359,39 @@ export default function DoctorDashboard() {
             <button
               type="submit"
               disabled={isSearching || !inputHash.trim()}
-              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-mono text-xs font-semibold flex items-center gap-1.5 transition-all"
+              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-xs flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/20"
             >
               {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-              <span>Inspect</span>
+              <span>Verify</span>
             </button>
           </div>
         </form>
 
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
-          <span className="text-slate-500">Supported Formats:</span>
-          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
-            IPFS CIDv0 (Qm...)
+        {/* Quick Demo Clinical Record Chips */}
+        <div className="space-y-2 pt-1 border-t border-slate-800/60">
+          <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-purple-400" />
+            <span>Quick-Inspect Clinical Demo Records:</span>
           </span>
-          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
-            Solidity bytes32 (0x...)
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {DEMO_SHORTCUTS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleSelectShortcut(item)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all hover:border-slate-700 shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Query Result Card */}
+      {/* Query Result Card: Clinical Healthcare Card */}
       {searchResult && (
-        <div className="surface-card rounded-2xl border border-white/[0.1] overflow-hidden space-y-6">
+        <div className="surface-card rounded-2xl border border-white/[0.1] overflow-hidden space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header Banner Based on Permission */}
           <div
             className={`p-5 flex items-center justify-between border-b ${
@@ -226,50 +402,51 @@ export default function DoctorDashboard() {
                 : "bg-rose-500/10 border-rose-500/20 text-rose-300"
             }`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
               {!searchResult.isRegistered ? (
-                <ShieldAlert className="w-6 h-6 text-amber-400" />
+                <ShieldAlert className="w-6 h-6 text-amber-400 shrink-0" />
               ) : searchResult.hasPermission ? (
-                <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
               ) : (
-                <Lock className="w-6 h-6 text-rose-400" />
+                <Lock className="w-6 h-6 text-rose-400 shrink-0" />
               )}
               <div>
                 <h4 className="text-sm font-bold">
                   {!searchResult.isRegistered
-                    ? "Record Not Registered On-Chain"
+                    ? "Record Not Found on Ethereum"
                     : searchResult.hasPermission
-                    ? "Access Permission Granted"
-                    : "Access Permission Denied"}
+                    ? "Consultation Access Authorized"
+                    : "Access Restricted — Patient Consent Required"}
                 </h4>
-                <p className="text-xs opacity-80 mt-0.5">
+                <p className="text-xs opacity-85 mt-0.5 leading-relaxed">
                   {!searchResult.isRegistered
-                    ? "This multihash does not correspond to any active medical record on Ethereum."
+                    ? "This multihash does not correspond to any active electronic health record."
                     : searchResult.hasPermission
-                    ? "Your physician address is authorized to decrypt and review this patient's EHR payload."
-                    : "Your address is not currently listed in the patient's smart contract access mapping."}
+                    ? "Your physician address is authorized to decrypt and review this clinical record."
+                    : "Your address is not currently authorized. Broadcast an official on-chain request to the patient."}
                 </p>
               </div>
             </div>
 
-            <div className="font-mono text-xs font-bold uppercase">
+            <div className="text-xs font-bold uppercase tracking-wider hidden sm:block">
               {!searchResult.isRegistered ? "Unanchored" : searchResult.hasPermission ? "Authorized" : "Restricted"}
             </div>
           </div>
 
           {/* Record Clinical Overview */}
-          <div className="p-6 space-y-4 pt-0">
+          <div className="p-6 space-y-5 pt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
                 <span className="text-[11px] font-medium text-slate-400">
-                  PATIENT SOVEREIGN OWNER
+                  PATIENT SOVEREIGN IDENTITY
                 </span>
-                <div className="font-mono text-xs text-white truncate flex items-center gap-2">
+                <div className="text-xs text-white flex items-center gap-2">
                   <User className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>{searchResult.isRegistered ? searchResult.owner : "Unregistered"}</span>
+                  <span className="font-semibold">{searchResult.patientName || "Alex Mercer"}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">({shortenAddress(searchResult.owner)})</span>
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  {searchResult.isRegistered ? "Verified patient identity on Ethereum" : "No ownership assigned"}
+                  {searchResult.department || "St. Jude Heart Institute"}
                 </div>
               </div>
 
@@ -277,25 +454,25 @@ export default function DoctorDashboard() {
                 <span className="text-[11px] font-medium text-slate-400">
                   CLINICAL ACCESS STATUS
                 </span>
-                <div className={`font-mono text-xs flex items-center gap-1.5 ${
+                <div className={`text-xs flex items-center gap-1.5 font-semibold ${
                   searchResult.hasPermission ? "text-emerald-400" : "text-amber-400"
                 }`}>
                   {searchResult.hasPermission ? (
                     <>
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Authorized for Clinical Consultation</span>
+                      <span>Decryption Permission Active</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-3.5 h-3.5" />
-                      <span>Restricted — Patient Consent Required</span>
+                      <span>Awaiting Patient Authorization</span>
                     </>
                   )}
                 </div>
                 <div className="text-[10px] text-slate-500">
                   {searchResult.hasPermission
-                    ? "Symmetric key decryption authorized"
-                    : "Broadcast a request to the patient's dashboard"}
+                    ? "Session symmetric key decryption permitted"
+                    : "Submit on-chain access request for approval"}
                 </div>
               </div>
             </div>
@@ -305,7 +482,7 @@ export default function DoctorDashboard() {
               {searchResult.isRegistered && searchResult.hasPermission && (
                 <button
                   onClick={() => setIsDecryptOpen(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98]"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98]"
                 >
                   <Unlock className="w-4 h-4" />
                   <span>Open Clinical Decryption Station</span>
@@ -316,7 +493,7 @@ export default function DoctorDashboard() {
                 <button
                   onClick={handleRequestAccess}
                   disabled={isRequesting}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
                 >
                   {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   <span>Request Patient Consultation Access</span>

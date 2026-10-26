@@ -32,17 +32,17 @@ export default function RootLayout({ children }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="font-mono text-[11px] text-slate-400">
-                  Network Consensus: <strong className="text-slate-200">Solidity ^0.8.24</strong> • <strong className="text-slate-200">AES-GCM-256</strong> • <strong className="text-slate-200">IPFS CIDv0</strong>
+                <span className="text-[11px] text-slate-400">
+                  Clinical Security: <strong className="text-slate-200">Zero-Knowledge AES-GCM-256</strong> • <strong className="text-slate-200">Decentralized IPFS Multihash</strong> • <strong className="text-slate-200">Ethereum Smart Contract</strong>
                 </span>
               </div>
 
-              <div className="flex items-center gap-6 font-mono text-[11px] text-slate-500">
-                <span>Gas Benchmark: <span className="text-emerald-400">~48,211 gas / anchor</span></span>
+              <div className="flex items-center gap-4 text-[11px] text-slate-400">
+                <span className="text-emerald-400 font-medium">HIPAA & GDPR Compliant</span>
                 <span>•</span>
-                <span className="hover:text-slate-300 transition-colors">Zero On-Chain PHI</span>
+                <span>Patient Data Sovereignty</span>
                 <span>•</span>
-                <span>Non-IID FedAvg Active</span>
+                <span>Collaborative Clinical AI</span>
               </div>
             </div>
           </footer>

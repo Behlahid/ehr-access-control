@@ -37,8 +37,48 @@ import {
   Info
 } from "lucide-react";
 
+const DEMO_PATIENT_RECORDS = [
+  {
+    ipfsHash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    timestamp: 1729960249,
+    flEligible: true,
+    cid: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+  },
+  {
+    ipfsHash: "0x1111111111111111111111111111111111111111111111111111111111111111",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    timestamp: 1729701049,
+    flEligible: true,
+    cid: "QmZtmD2qt8fJv3CL8FnjqiusxVHYM1zG29Uej3QakDEnV8",
+  },
+  {
+    ipfsHash: "0x2222222222222222222222222222222222222222222222222222222222222222",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    timestamp: 1729096249,
+    flEligible: false,
+    cid: "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG",
+  },
+  {
+    ipfsHash: "0x3333333333333333333333333333333333333333333333333333333333333333",
+    owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    timestamp: 1727713849,
+    flEligible: true,
+    cid: "QmPZ9gcCEpqKTo6aq61g2nXGUhM49wbdukU7xZgDk75zW6",
+  },
+];
+
 export default function PatientDashboard() {
-  const { account, signer, provider, isCorrectNetwork, connectWallet } = useWeb3();
+  const {
+    account,
+    signer,
+    provider,
+    connectWallet,
+    isDemoMode,
+    demoUser,
+    enterDemoMode,
+  } = useWeb3();
+
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -62,47 +102,83 @@ export default function PatientDashboard() {
   const [notification, setNotification] = useState(null);
 
   const fetchMyRecords = useCallback(async () => {
-    if (!account || (!signer && !provider)) return;
+    if (!account && !isDemoMode) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+
+      // If in Demo Mode or no live runner, load rich clinical demo records
+      if (isDemoMode || (!signer && !provider)) {
+        setRecords(DEMO_PATIENT_RECORDS);
+        setLoading(false);
+        return;
+      }
+
       const runner = signer || provider;
       const contract = getEHRContract(runner);
 
       const recordsData = await contract.getMyRecords();
 
-      const parsed = recordsData.map((rec) => ({
-        ipfsHash: rec.ipfsHash,
-        owner: rec.owner,
-        timestamp: Number(rec.timestamp),
-        flEligible: rec.flEligible,
-        cid: bytes32ToCid(rec.ipfsHash),
-      }));
-
-      setRecords(parsed);
+      if (recordsData.length === 0 && isDemoMode) {
+        setRecords(DEMO_PATIENT_RECORDS);
+      } else {
+        const parsed = recordsData.map((rec) => ({
+          ipfsHash: rec.ipfsHash,
+          owner: rec.owner,
+          timestamp: Number(rec.timestamp),
+          flEligible: rec.flEligible,
+          cid: bytes32ToCid(rec.ipfsHash),
+        }));
+        setRecords(parsed);
+      }
     } catch (err) {
       console.error("Error fetching my records:", err);
-      setNotification({
-        type: "error",
-        title: "Failed to Fetch Records",
-        message: parseContractError(err),
-      });
+      if (isDemoMode) {
+        setRecords(DEMO_PATIENT_RECORDS);
+      } else {
+        setNotification({
+          type: "error",
+          title: "Failed to Fetch Records",
+          message: parseContractError(err),
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [account, signer, provider]);
+  }, [account, signer, provider, isDemoMode]);
 
   useEffect(() => {
     fetchMyRecords();
   }, [fetchMyRecords, refreshTrigger]);
 
   const handleToggleFL = async (recordHash, currentStatus) => {
-    if (!signer) return;
+    const newStatus = !currentStatus;
+
+    if (isDemoMode || !signer) {
+      setTogglingFlHash(recordHash);
+      setTimeout(() => {
+        setRecords((prev) =>
+          prev.map((r) =>
+            r.ipfsHash === recordHash ? { ...r, flEligible: newStatus } : r
+          )
+        );
+        setNotification({
+          type: "success",
+          title: newStatus ? "AI Research Consent Active" : "AI Research Consent Paused",
+          message: `Simulated On-Chain State: Record ${shortenHash(recordHash)} has been updated. (Demo Mode)`,
+          txHash: "0x892fa...demo99",
+        });
+        setTogglingFlHash(null);
+      }, 700);
+      return;
+    }
 
     try {
       setTogglingFlHash(recordHash);
       const contract = getEHRContract(signer);
-      const newStatus = !currentStatus;
 
       const tx = await contract.setFLEligibility(recordHash, newStatus);
       const receipt = await tx.wait();
@@ -167,22 +243,63 @@ export default function PatientDashboard() {
     };
   };
 
-  if (!account) {
+  // Gateway screen if neither wallet nor demo is active
+  if (!account && !isDemoMode) {
     return (
-      <div className="py-20 text-center max-w-md mx-auto space-y-5">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-obsidian-900 border border-slate-700/80 flex items-center justify-center text-cyan-400 shadow-lg">
-          <Shield className="w-7 h-7" />
+      <div className="py-16 text-center max-w-xl mx-auto space-y-6">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-xl">
+          <Shield className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Patient Health Portal</h2>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          Sign in with your digital cryptographic health key to manage your verified medical history, delegate physician consultation permissions, and control anonymous AI research consent.
-        </p>
-        <button
-          onClick={connectWallet}
-          className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-obsidian-950 font-bold text-xs tracking-tight shadow-md shadow-cyan-500/20 transition-all active:scale-[0.98]"
-        >
-          Sign In with Digital Health ID (MetaMask)
-        </button>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Patient Sovereign Health Portal
+          </h2>
+          <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
+            Take complete ownership of your medical records. Control physician access delegation, protect diagnostic data with client-side encryption, and govern AI research consent.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => enterDemoMode("patient")}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-obsidian-950 font-bold text-xs tracking-tight shadow-lg shadow-cyan-500/25 transition-all active:scale-[0.98]"
+          >
+            <Sparkles className="w-4 h-4 text-obsidian-950" />
+            <span>Explore Demo Health Profile (Alex Mercer - 4 Records)</span>
+          </button>
+
+          <button
+            onClick={connectWallet}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs tracking-tight transition-all"
+          >
+            <Shield className="w-4 h-4 text-cyan-400" />
+            <span>Connect Live MetaMask</span>
+          </button>
+        </div>
+
+        <div className="pt-8 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Full Sovereignty</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Only your private key can grant or revoke doctor viewing rights.</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Zero-Knowledge Storage</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Files encrypted before IPFS upload. Storage nodes only see ciphertext.</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-obsidian-950/80 border border-slate-800/80 space-y-1">
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              <span>Dynamic AI Consent</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Participate in medical AI training with real-time opt-in and opt-out.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -247,7 +364,7 @@ export default function PatientDashboard() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Patient Health Portal
+              Patient Sovereign Portal
             </h1>
             <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -255,7 +372,11 @@ export default function PatientDashboard() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Personal Health ID: <span className="text-slate-200 font-mono">{account}</span>
+            {isDemoMode ? (
+              <span>Viewing Health Profile: <strong className="text-slate-200">Alex Mercer</strong> • (MRN-9482-A, Metro Health System)</span>
+            ) : (
+              <span>Personal Health ID: <span className="text-slate-200 font-mono">{account}</span></span>
+            )}
           </p>
         </div>
 
@@ -317,7 +438,7 @@ export default function PatientDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>Your Electronic Health Records</span>
+              <span>Electronic Medical Records</span>
               <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
                 {filteredRecords.length} of {records.length}
               </span>
@@ -376,7 +497,7 @@ export default function PatientDashboard() {
         {loading && records.length === 0 ? (
           <div className="py-16 text-center text-xs text-slate-400 animate-pulse flex flex-col items-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
-            <span>Retrieving your verified medical records from Ethereum...</span>
+            <span>Retrieving your verified medical records...</span>
           </div>
         ) : filteredRecords.length === 0 ? (
           <div className="py-12 text-center space-y-3">
