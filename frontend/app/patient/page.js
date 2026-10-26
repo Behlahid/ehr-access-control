@@ -9,6 +9,8 @@ import GrantRevokeModal from "../../components/GrantRevokeModal";
 import ActivityFeed from "../../components/ActivityFeed";
 import Notification from "../../components/Notification";
 import CryptographicAuditDrawer from "../../components/CryptographicAuditDrawer";
+import LabRangeBar from "../../components/LabRangeBar";
+import CareTeamRoster from "../../components/CareTeamRoster";
 import {
   Shield,
   Upload,
@@ -82,6 +84,10 @@ export default function PatientDashboard() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Primary view tabs: 'records' | 'careteam'
+  const [activeTab, setActiveTab] = useState("records");
+  const [expandedRecordHash, setExpandedRecordHash] = useState("0x1111111111111111111111111111111111111111111111111111111111111111");
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -393,8 +399,43 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* Medical Records Management Section */}
-      <div className="surface-card rounded-2xl border border-white/[0.08] p-5 space-y-5">
+      {/* Primary Patient Portal View Tabs: Linear / Apple Health Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <button
+          onClick={() => setActiveTab("records")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "records"
+              ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent"
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Clinical Records & Encounters</span>
+          <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">
+            {records.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("careteam")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "careteam"
+              ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent"
+          }`}
+        >
+          <Stethoscope className="w-3.5 h-3.5" />
+          <span>Care Team & Authorizations</span>
+          <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            2 Active
+          </span>
+        </button>
+      </div>
+
+      {activeTab === "careteam" ? (
+        <CareTeamRoster onNotification={(n) => setNotification(n)} />
+      ) : (
+        <div className="surface-card rounded-2xl border border-white/[0.08] p-5 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -535,6 +576,115 @@ export default function PatientDashboard() {
                     </div>
                   </div>
 
+                  {/* Discrete Clinical Observations (Apple Health & HL7-FHIR Standard) */}
+                  {profile.category === "Biochemistry" && (
+                    <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Discrete Laboratory Observations (FHIR Observation Resource)</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          Status: Final • Signed by Attending Pathologist
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        <LabRangeBar
+                          name="Total Cholesterol"
+                          value={185}
+                          unit="mg/dL"
+                          min={100}
+                          max={280}
+                          optimalMin={125}
+                          optimalMax={200}
+                          status="normal"
+                        />
+                        <LabRangeBar
+                          name="Triglycerides"
+                          value={130}
+                          unit="mg/dL"
+                          min={40}
+                          max={250}
+                          optimalMin={50}
+                          optimalMax={150}
+                          status="normal"
+                        />
+                        <LabRangeBar
+                          name="HDL Good Cholesterol"
+                          value={54}
+                          unit="mg/dL"
+                          min={20}
+                          max={100}
+                          optimalMin={40}
+                          optimalMax={90}
+                          status="normal"
+                          notes="High-Density"
+                        />
+                        <LabRangeBar
+                          name="Fasting Blood Glucose"
+                          value={92}
+                          unit="mg/dL"
+                          min={50}
+                          max={160}
+                          optimalMin={70}
+                          optimalMax={99}
+                          status="normal"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(profile.category === "Cardiology" || profile.category === "Cardiovascular Telemetry") && (
+                    <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <Heart className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Cardiovascular Vitals & Telemetry Summary</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                          Continuous Ambulatory Telemetry
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-0.5">
+                          <div className="text-[10px] text-slate-500 font-mono">AVG RESTING HR</div>
+                          <div className="text-base font-extrabold font-mono text-white">72 <span className="text-xs font-normal text-slate-400">bpm</span></div>
+                          <div className="text-[10px] text-emerald-400">Normal (60–100)</div>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-0.5">
+                          <div className="text-[10px] text-slate-500 font-mono">BLOOD PRESSURE</div>
+                          <div className="text-base font-extrabold font-mono text-white">118/78 <span className="text-xs font-normal text-slate-400">mmHg</span></div>
+                          <div className="text-[10px] text-emerald-400">Optimal Range</div>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-0.5">
+                          <div className="text-[10px] text-slate-500 font-mono">BLOOD OXYGEN</div>
+                          <div className="text-base font-extrabold font-mono text-white">99% <span className="text-xs font-normal text-slate-400">SpO2</span></div>
+                          <div className="text-[10px] text-emerald-400">Normal (&gt;95%)</div>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-0.5">
+                          <div className="text-[10px] text-slate-500 font-mono">RHYTHM CADENCE</div>
+                          <div className="text-base font-extrabold font-mono text-purple-300">Normal Sinus</div>
+                          <div className="text-[10px] text-emerald-400">0% Ectopic Beats</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.category === "Diagnostic Radiology" && (
+                    <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2 text-xs">
+                      <div className="flex items-center justify-between font-bold text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Diagnostic Radiology Report Findings</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">DICOM Series #4029</span>
+                      </div>
+                      <p className="text-slate-300 leading-relaxed text-[11px]">
+                        High-resolution helical thoracic CT scan without intravenous contrast. Normal pulmonary vascular markings. No pleural effusions, pneumothorax, or acute airspace consolidation. Cardiac silhouette is normal in size and contour.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Patient Sovereignty Controls: Research Toggle & Doctor Access */}
                   <div className="pt-3 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     {/* Left: AI Medical Research Opt-In Toggle */}
@@ -620,6 +770,7 @@ export default function PatientDashboard() {
           </div>
         )}
       </div>
+    )}
 
       {/* Embedded Live Audit Trail Feed */}
       <div className="surface-card rounded-2xl border border-white/[0.08] p-6 space-y-4">
