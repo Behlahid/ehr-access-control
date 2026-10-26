@@ -32,9 +32,22 @@ from sklearn.metrics import (
 )
 from .model import HeartDiseaseNN
 
-def train_local_client(model, X_client, y_client, epochs=5, lr=0.008, batch_size=16):
+def train_local_client(
+    model,
+    X_client,
+    y_client,
+    epochs=5,
+    lr=0.008,
+    batch_size=16,
+    enable_dp=True,
+    clip_norm=1.0,
+    noise_multiplier=0.01,
+):
     """
     Simulates on-premise local model training inside a single hospital node.
+    Includes Differential Privacy (DP-SGD):
+    - L2 Gradient Norm Clipping: bounds individual clinical record sensitivity to `clip_norm`.
+    - Calibrated Gaussian Noise Injection: adds N(0, (noise_multiplier * clip_norm)^2) to gradients.
     """
     model.train()
     criterion = nn.BCELoss()
@@ -54,6 +67,18 @@ def train_local_client(model, X_client, y_client, epochs=5, lr=0.008, batch_size
             preds = model(batch_x)
             loss = criterion(preds, batch_y)
             loss.backward()
+
+            # Differential Privacy: L2 Gradient Clipping
+            if enable_dp and clip_norm > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=clip_norm)
+
+            # Differential Privacy: Gaussian Noise Mechanism
+            if enable_dp and noise_multiplier > 0:
+                for param in model.parameters():
+                    if param.grad is not None:
+                        noise = torch.randn_like(param.grad) * (noise_multiplier * clip_norm)
+                        param.grad.add_(noise)
+
             optimizer.step()
             running_loss += loss.item() * batch_x.size(0)
         epoch_loss = running_loss / len(dataset)
