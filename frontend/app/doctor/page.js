@@ -7,6 +7,7 @@ import { getEHRContract } from "../../lib/contract";
 import { cidToBytes32, bytes32ToCid, shortenAddress, shortenHash, parseContractError } from "../../lib/utils";
 import DecryptModal from "../../components/DecryptModal";
 import Notification from "../../components/Notification";
+import CryptographicAuditDrawer from "../../components/CryptographicAuditDrawer";
 import {
   Stethoscope,
   Search,
@@ -256,52 +257,45 @@ export default function DoctorDashboard() {
             </div>
           </div>
 
-          {/* Record Technical Properties */}
+          {/* Record Clinical Overview */}
           <div className="p-6 space-y-4 pt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
-                  RECORD MULTIHASH (bytes32)
+              <div className="p-4 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
+                <span className="text-[11px] font-medium text-slate-400">
+                  PATIENT SOVEREIGN OWNER
                 </span>
-                <div className="font-mono text-xs text-white truncate">
-                  {searchResult.recordHash}
+                <div className="font-mono text-xs text-white truncate flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{searchResult.isRegistered ? searchResult.owner : "Unregistered"}</span>
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {searchResult.isRegistered ? "Verified patient identity on Ethereum" : "No ownership assigned"}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
-                  IPFS CONTENT IDENTIFIER
+              <div className="p-4 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
+                <span className="text-[11px] font-medium text-slate-400">
+                  CLINICAL ACCESS STATUS
                 </span>
-                <div className="flex items-center justify-between">
-                  <div className="font-mono text-xs text-cyan-400 truncate">
-                    {searchResult.cid}
-                  </div>
-                  <a
-                    href={`https://gateway.pinata.cloud/ipfs/${searchResult.cid}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-slate-400 hover:text-cyan-300 ml-2"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                <div className={`font-mono text-xs flex items-center gap-1.5 ${
+                  searchResult.hasPermission ? "text-emerald-400" : "text-amber-400"
+                }`}>
+                  {searchResult.hasPermission ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Authorized for Clinical Consultation</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Restricted — Patient Consent Required</span>
+                    </>
+                  )}
                 </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
-                  PATIENT RECORD OWNER
-                </span>
-                <div className="font-mono text-xs text-white">
-                  {searchResult.isRegistered ? searchResult.owner : "Zero Address (0x000...)"}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-obsidian-950 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono font-medium text-slate-500 uppercase">
-                  CONSENSUS CHECK
-                </span>
-                <div className="font-mono text-xs text-emerald-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> O(1) Constant Gas Verified
+                <div className="text-[10px] text-slate-500">
+                  {searchResult.hasPermission
+                    ? "Symmetric key decryption authorized"
+                    : "Broadcast a request to the patient's dashboard"}
                 </div>
               </div>
             </div>
@@ -311,10 +305,10 @@ export default function DoctorDashboard() {
               {searchResult.isRegistered && searchResult.hasPermission && (
                 <button
                   onClick={() => setIsDecryptOpen(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98]"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98]"
                 >
                   <Unlock className="w-4 h-4" />
-                  <span>Open Decryption Station</span>
+                  <span>Open Clinical Decryption Station</span>
                 </button>
               )}
 
@@ -322,13 +316,22 @@ export default function DoctorDashboard() {
                 <button
                   onClick={handleRequestAccess}
                   disabled={isRequesting}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]"
                 >
                   {isRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  <span>Broadcast On-Chain Access Request</span>
+                  <span>Request Patient Consultation Access</span>
                 </button>
               )}
             </div>
+
+            {/* Progressive Disclosure Component: Cryptographic Audit Drawer */}
+            <CryptographicAuditDrawer
+              recordHash={searchResult.recordHash}
+              cid={searchResult.cid}
+              owner={searchResult.owner}
+              isOwner={false}
+              hasAccess={searchResult.hasPermission}
+            />
           </div>
         </div>
       )}
