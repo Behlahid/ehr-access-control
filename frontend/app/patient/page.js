@@ -343,113 +343,270 @@ export default function PatientDashboard() {
         onClose={() => setIsJargonModalOpen(false)}
       />
 
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Patient Sovereign Portal
+      {/* PATIENT IDENTITY BANNER & SOVEREIGN ENCLAVE ATTESTATION (Stitch Blueprint) */}
+      <section className="surface-card rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {isSimulated || isDemoMode ? "Alex Mercer" : (account ? "Sovereign Health Node" : "Patient Portal")}
             </h1>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Sovereign & Verified
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              {isSimulated || isDemoMode ? "MRN-9482-A • Metro Health System" : shortenAddress(account)}
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-500/30">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Sovereign Verified</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            {isSimulated || isDemoMode ? (
-              <span>Viewing Health Profile: <strong className="text-slate-900 dark:text-slate-200">Alex Mercer</strong> • (MRN-9482-A, Metro Health System)</span>
-            ) : (
-              <span>Personal Health ID: <span className="text-slate-900 dark:text-slate-200 font-mono">{account}</span></span>
-            )}
-          </p>
+
+          {/* Attestation and Hardware Enclave Metadata */}
+          <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1">
+              <Lock className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+              Hardware Enclave: SGX Nitro v2.4 (Encrypted)
+            </span>
+            <span>•</span>
+            <span className="font-mono text-[11px]">
+              Last FHIR Sync: Today, 09:42:18 UTC
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+              <Key className="w-3 h-3" />
+              Attestation: 0x4fbc...91e3
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsJargonModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
-            title="Plain-Language Healthtech Dictionary"
-          >
-            <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            <span className="hidden sm:inline">Plain-Language Guide</span>
-          </button>
-
-          <button
-            onClick={() => setRefreshTrigger((prev) => prev + 1)}
-            disabled={loading}
-            className="p-2.5 rounded-xl surface-interactive text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-            title="Refresh Medical Records"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-cyan-600 dark:text-cyan-400" : ""}`} />
-          </button>
-
+        {/* Quick Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-600/20 transition-all active:scale-[0.98] cursor-pointer"
+            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold h-10 px-4 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
           >
             <Upload className="w-4 h-4" />
             <span>Add New Medical Record</span>
           </button>
-        </div>
-      </div>
-
-      {/* Interactive Demo Sandbox Banner */}
-      {isSimulated && (
-        <div className="p-4 rounded-2xl bg-cyan-50/80 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300">
-              <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-cyan-950 dark:text-white">Interactive Patient Demo Mode Active</h4>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                Viewing verified medical profile for <strong className="text-slate-900 dark:text-slate-200">Alex Mercer</strong> (MRN-9482-A, Metro Health). You can test AI research consent switches, doctor authorizations, and inspect cryptographic audit proofs without MetaMask.
-              </p>
-            </div>
-          </div>
           <button
-            onClick={connectWallet}
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            type="button"
+            onClick={() => setIsJargonModalOpen(true)}
+            className="surface-card hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold h-10 px-3.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <Shield className="w-4 h-4" />
-            <span>Connect MetaMask</span>
+            <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <span>Plain-Language Guide</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("careteam")}
+            className="surface-card hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold h-10 px-3.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Stethoscope className="w-4 h-4 text-slate-400" />
+            <span>Care Team Roster</span>
           </button>
         </div>
-      )}
+      </section>
 
-      {/* Executive Health Overview Cards: Apple Health Pinned Vitals */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="surface-card p-5 rounded-2xl space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
-            <span>SOVEREIGN MEDICAL RECORDS</span>
-            <Database className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+      {/* EXECUTIVE VITALS & TELEMETRY (Apple Health Bento Grid - Stitch Design) */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Executive Vitals &amp; Telemetry</h2>
           </div>
-          <div className="text-2xl font-extrabold font-mono text-slate-900 dark:text-white">{records.length}</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Stored off-chain on IPFS, secured on Ethereum</div>
+          <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live BLE Telemetry
+          </span>
         </div>
 
-        <div className="surface-card p-5 rounded-2xl space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
-            <span>AI RESEARCH CONTRIBUTION</span>
-            <Cpu className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        {/* 4 Vitals Bento Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Resting Heart Rate */}
+          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Resting Heart Rate</span>
+              <Heart className="w-4 h-4 text-rose-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">72</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">bpm</span>
+            </div>
+            {/* Delicate SVG Sparkline Curve */}
+            <div className="my-3 h-8 w-full">
+              <svg className="w-full h-full text-cyan-600 dark:text-cyan-400" preserveAspectRatio="none" viewBox="0 0 100 25">
+                <path d="M0,15 Q10,12 20,15 T35,10 T50,18 T65,8 T80,14 T100,12" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+              </svg>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Normal Sinus
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">58 - 81 bpm</span>
+            </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold font-mono text-purple-700 dark:text-purple-300">{flCount} of {records.length}</span>
-            <span className="text-xs font-mono text-slate-500 dark:text-slate-400">({flPercentage}%)</span>
+
+          {/* Card 2: Blood Pressure */}
+          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Pressure</span>
+              <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">118/78</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mmHg</span>
+            </div>
+            {/* Dual Range Indicator */}
+            <div className="my-3 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                <span>Systolic 118</span>
+                <span>Diastolic 78</span>
+              </div>
+              <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                <div className="w-3/5 bg-cyan-600 dark:bg-cyan-500 rounded-full" />
+                <div className="w-2/5 bg-slate-200 dark:bg-slate-700" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Optimal
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Stage 1 Norm</span>
+            </div>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Anonymous participation in clinical AI training</div>
+
+          {/* Card 3: Fasting Blood Glucose */}
+          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Fasting Blood Glucose</span>
+              <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">92</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mg/dL</span>
+            </div>
+            <div className="my-3 flex items-center justify-between text-xs py-1">
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Est. A1C</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">4.9% (eAG 94)</span>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Normal
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Fasting 8h Verif</span>
+            </div>
+          </div>
+
+          {/* Card 4: Blood Oxygen */}
+          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Oxygen</span>
+              <Cpu className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">99%</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">SpO2</span>
+            </div>
+            {/* Continuous Pulse Oximetry Bar */}
+            <div className="my-3 flex items-center gap-2">
+              <div className="h-2 flex-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                <div className="w-[99%] bg-cyan-600 dark:bg-cyan-500 rounded-full" />
+              </div>
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Pleth 99</span>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Optimal Saturation
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Cont. Pulse Ox</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* DISCRETE FHIR DIAGNOSTIC OBSERVATIONS (Stitch Continuous Range Sliders) */}
+      <section className="surface-card rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">FHIR Diagnostic Observations</h3>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Standard: <span className="font-mono text-[11px]">HL7 FHIR v4.0.1 Observation Resource Schema</span> • Verified Specimen ID: #SPEC-9921
+            </p>
+          </div>
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 self-start">
+            <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 shadow-sm border border-slate-200 dark:border-slate-700">
+              Lipid Panel
+            </span>
+            <span className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Metabolic Markers
+            </span>
+            <span className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Biomarker Trends
+            </span>
+          </div>
         </div>
 
-        <div className="surface-card p-5 rounded-2xl space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
-            <span>CLIENT PRIVACY STANDARD</span>
-            <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">Zero-Knowledge AES-256</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Encrypted in browser memory before transmission</div>
+        {/* Continuous Range Sliders */}
+        <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
+          <LabRangeBar
+            name="Total Cholesterol"
+            value={185}
+            unit="mg/dL"
+            loinc="LOINC: 2093-3"
+            min={0}
+            max={300}
+            optimalMax={200}
+            borderlineMax={239}
+            targetLabel="(<200 mg/dL Desirable)"
+            status="normal"
+            statusLabel="In-Range"
+          />
+          <LabRangeBar
+            name="Triglycerides"
+            value={130}
+            unit="mg/dL"
+            loinc="LOINC: 2571-8"
+            min={0}
+            max={300}
+            optimalMax={150}
+            borderlineMax={199}
+            targetLabel="(<150 mg/dL Normal)"
+            status="normal"
+            statusLabel="Safe Zone"
+          />
+          <LabRangeBar
+            name="HDL Cholesterol"
+            value={54}
+            unit="mg/dL"
+            loinc="LOINC: 2085-9"
+            min={0}
+            max={100}
+            optimalMax={60}
+            borderlineMax={40}
+            targetLabel="(>40 mg/dL Protective)"
+            status="normal"
+            statusLabel="Protective"
+          />
+          <LabRangeBar
+            name="Fasting Glucose"
+            value={92}
+            unit="mg/dL"
+            loinc="LOINC: 1558-6"
+            min={0}
+            max={160}
+            optimalMax={99}
+            borderlineMax={125}
+            targetLabel="(70-99 mg/dL Fasting Normal)"
+            status="normal"
+            statusLabel="Optimal"
+          />
         </div>
-      </div>
+      </section>
 
       {/* Primary Patient Portal View Tabs: Linear / Apple Health Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 relative z-10">

@@ -108,28 +108,42 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-white/[0.08] bg-white/90 dark:bg-obsidian-950/90 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-sky-600 dark:from-slate-800 dark:to-obsidian-900 border border-cyan-400/30 dark:border-slate-700/80 flex items-center justify-center shadow-md group-hover:border-cyan-500 transition-all text-white">
-              <Shield className="w-5 h-5 text-white dark:text-cyan-400 group-hover:scale-105 transition-transform" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
-                  HealthLedger
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  Clinical Web3
-                </span>
+          {/* Brand Logo & Search */}
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                <Shield className="w-5 h-5 text-white" />
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">
-                Sovereign Healthcare & Collaborative AI
-              </p>
-            </div>
-          </Link>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                    Aegis Clinical Health
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                    Sovereign Enclave
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                  Decentralized EHR & Federated AI
+                </p>
+              </div>
+            </Link>
 
-          {/* Navigation Segmented Controls (Always Visible for seamless switching) */}
-          <div className="flex items-center p-1 bg-slate-100 dark:bg-obsidian-900/90 rounded-xl border border-slate-200 dark:border-white/[0.08] shadow-inner">
+            {/* Quick OmniSearch Bar (Stitch blueprint) */}
+            <div
+              onClick={() => setIsCommandOpen(true)}
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors w-64 shadow-2xs"
+            >
+              <Search className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs truncate">Search SNOMED, LOINC, vitals...</span>
+              <kbd className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
+                ⌘K
+              </kbd>
+            </div>
+          </div>
+
+          {/* Navigation Segmented Controls */}
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-inner">
             <button
               id="nav-patient-tab"
               onClick={() => handleSwitchRole("patient")}
