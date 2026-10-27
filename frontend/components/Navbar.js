@@ -111,8 +111,8 @@ export default function Navbar() {
       <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-white/[0.08] bg-white/90 dark:bg-obsidian-950/90 backdrop-blur-xl transition-colors">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
-            {/* Brand Logo & Search */}
-            <div className="flex items-center gap-3 min-w-0">
+            {/* Brand Logo */}
+            <div className="flex items-center gap-3 shrink-0">
               <Link href="/" className="flex items-center gap-2.5 group shrink-0">
                 <div className="w-9 h-9 rounded-xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform shrink-0">
                   <Shield className="w-5 h-5 text-white" />
@@ -135,18 +135,6 @@ export default function Navbar() {
                   </p>
                 </div>
               </Link>
-
-              {/* Quick OmniSearch Bar (Stitch blueprint) */}
-              <div
-                onClick={() => setIsCommandOpen(true)}
-                className="hidden xl:flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:border-cyan-500/40 cursor-pointer transition-all w-36 2xl:w-48 shadow-2xs hover:scale-[1.01] shrink-0"
-              >
-                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="text-xs truncate">Search...</span>
-                <kbd className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 shrink-0">
-                  ⌘K
-                </kbd>
-              </div>
             </div>
 
             {/* Navigation Segmented Controls */}
@@ -161,8 +149,8 @@ export default function Navbar() {
                 }`}
               >
                 <User className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden lg:inline whitespace-nowrap">Patient Portal</span>
-                <span className="lg:hidden whitespace-nowrap">Patient</span>
+                <span className="hidden sm:inline whitespace-nowrap">Patient Portal</span>
+                <span className="sm:hidden whitespace-nowrap">Patient</span>
               </button>
 
               <button
@@ -175,13 +163,36 @@ export default function Navbar() {
                 }`}
               >
                 <Stethoscope className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden lg:inline whitespace-nowrap">Physician Terminal</span>
-                <span className="lg:hidden whitespace-nowrap">Doctor</span>
+                <span className="hidden sm:inline whitespace-nowrap">Physician Terminal</span>
+                <span className="sm:hidden whitespace-nowrap">Doctor</span>
               </button>
             </div>
 
             {/* Right Action / Wallet / Theme Toggle / Demo Status */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Quick OmniSearch Bar on 2xl screens */}
+              <div
+                onClick={() => setIsCommandOpen(true)}
+                className="hidden 2xl:flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:border-cyan-500/40 cursor-pointer transition-all w-40 shadow-2xs hover:scale-[1.01] shrink-0"
+              >
+                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-xs truncate">Search...</span>
+                <kbd className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 shrink-0">
+                  ⌘K
+                </kbd>
+              </div>
+
+              {/* Compact Search Trigger on screens < 2xl */}
+              <button
+                id="command-palette-mobile-btn"
+                type="button"
+                onClick={() => setIsCommandOpen(true)}
+                className="2xl:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+                title="Search (⌘K)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+
               {/* Plain-Language Healthtech Guide (Jargon Translation Matrix) */}
               <button
                 id="jargon-matrix-btn"
@@ -196,17 +207,6 @@ export default function Navbar() {
                 <kbd className="hidden 2xl:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   ⌘J
                 </kbd>
-              </button>
-
-              {/* Mobile / Compact Search Trigger (hidden on xl+ since OmniSearch bar is present) */}
-              <button
-                id="command-palette-mobile-btn"
-                type="button"
-                onClick={() => setIsCommandOpen(true)}
-                className="xl:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
-                title="Search (⌘K)"
-              >
-                <Search className="w-4 h-4" />
               </button>
 
               {/* Theme Switcher Button */}
