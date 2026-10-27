@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import CommandPalette from "./CommandPalette";
 import JargonTranslatorModal from "./JargonTranslatorModal";
+import Logo from "./Logo";
 
 export default function Navbar() {
   const {
@@ -121,13 +122,11 @@ export default function Navbar() {
                 href="/"
                 className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none rounded-xl"
               >
-                <div className="w-9 h-9 rounded-xl bg-[#0284C7] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-all">
-                  <Shield className="w-5 h-5" />
-                </div>
+                <Logo size={34} />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white font-heading group-hover:text-[#0284C7] transition-colors">
-                      HealthLedger
+                      Health<span className="text-[#0284C7]">Ledger</span>
                     </span>
                     <span className="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
                       <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
