@@ -4,11 +4,21 @@ import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWeb3 } from "../../context/Web3Context";
 import { getEHRContract } from "../../lib/contract";
-import { cidToBytes32, bytes32ToCid, shortenAddress, shortenHash, parseContractError } from "../../lib/utils";
-import { checkDemoAccess, recordDemoBreakGlass, addDemoAuditLog, getDemoRecords, DEMO_PROFILES } from "../../lib/demoEngine";
+import {
+  cidToBytes32,
+  bytes32ToCid,
+  shortenAddress,
+  shortenHash,
+  parseContractError
+} from "../../lib/utils";
+import {
+  checkDemoAccess,
+  recordDemoBreakGlass,
+  addDemoAuditLog,
+  DEMO_PROFILES
+} from "../../lib/demoEngine";
 import DecryptModal from "../../components/DecryptModal";
 import Notification from "../../components/Notification";
-import CryptographicAuditDrawer from "../../components/CryptographicAuditDrawer";
 import JargonTranslatorModal from "../../components/JargonTranslatorModal";
 import ActivityFeed from "../../components/ActivityFeed";
 import {
@@ -17,22 +27,13 @@ import {
   Key,
   ShieldCheck,
   ShieldAlert,
-  Send,
   Unlock,
   Loader2,
   FileText,
   User,
-  Info,
   CheckCircle2,
   ExternalLink,
   Shield,
-  Cpu,
-  Lock,
-  Terminal,
-  Clock,
-  Sparkles,
-  ArrowRight,
-  Heart,
   Activity,
   AlertTriangle,
   X,
@@ -40,8 +41,12 @@ import {
   Check,
   Radio,
   FileCode,
-  Download,
-  Plus
+  Plus,
+  Copy,
+  Clock,
+  Sparkles,
+  Heart,
+  ChevronRight
 } from "lucide-react";
 
 const PATIENT_ROSTER = [
@@ -124,12 +129,10 @@ export default function DoctorDashboard() {
     connectWallet,
     isConnecting,
     isDemoMode,
-    demoUser,
-    enterDemoMode,
+    enterDemoMode
   } = useWeb3();
 
-  // In demo mode, start with Alex Mercer (PATIENT_ROSTER[0])
-  // In real mode, start with null until searched
+  // Active Patient & Lookup State
   const [selectedPatient, setSelectedPatient] = useState(() => (isDemoMode ? PATIENT_ROSTER[0] : null));
   const [inputHash, setInputHash] = useState(() => (isDemoMode ? PATIENT_ROSTER[0].hash : ""));
   const [isSearching, setIsSearching] = useState(false);
@@ -143,15 +146,20 @@ export default function DoctorDashboard() {
           hasPermission: true,
           title: "Comprehensive Cardiac Angiography & Stress Study",
           patientName: PATIENT_ROSTER[0].name,
-          department: "St. Jude Heart Institute",
+          department: "St. Jude Heart Institute"
         }
       : null
   );
 
+  // Active View Tab (diagnostics, directives, audit)
+  const [activeTab, setActiveTab] = useState("diagnostics");
+
+  // Modals & Notifications
   const [isRequesting, setIsRequesting] = useState(false);
   const [isDecryptOpen, setIsDecryptOpen] = useState(false);
   const [isJargonModalOpen, setIsJargonModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [copiedHash, setCopiedHash] = useState(false);
 
   // Emergency Break-Glass State
   const [isBreakGlassOpen, setIsBreakGlassOpen] = useState(false);
@@ -159,8 +167,11 @@ export default function DoctorDashboard() {
   const [isExecutingBreakGlass, setIsExecutingBreakGlass] = useState(false);
   const [breakGlassError, setBreakGlassError] = useState(null);
 
-  // Consultation Entry Form State
-  const [loincCodes, setLoincCodes] = useState(["LOINC 2093-3 (Cholesterol Serum)", "LOINC 80061-1 (Lipid Panel)"]);
+  // Clinical Consultation Entry Form State
+  const [loincCodes, setLoincCodes] = useState([
+    "LOINC 2093-3 (Cholesterol Serum)",
+    "LOINC 80061-1 (Lipid Panel)"
+  ]);
   const [clinicalNotes, setClinicalNotes] = useState(
     "Continue Atorvastatin 20mg q.d. at bedtime. Repeat 12-lead ECG and Holter telemetry in 90 days. Exercise stress testing deferred pending follow-up LDL-C laboratory evaluation. Patient sovereign enclave consent token updated for read-access delegation to the interventional cardiology team."
   );
@@ -170,6 +181,7 @@ export default function DoctorDashboard() {
 
   const prevDemoRef = React.useRef(isDemoMode);
 
+  // Default justification when break-glass modal opens
   useEffect(() => {
     if (isBreakGlassOpen && !breakGlassJustification.trim()) {
       setBreakGlassJustification(
@@ -178,6 +190,7 @@ export default function DoctorDashboard() {
     }
   }, [isBreakGlassOpen, breakGlassJustification]);
 
+  // Sync demo mode state changes
   useEffect(() => {
     if (isDemoMode) {
       if (!selectedPatient) {
@@ -196,11 +209,11 @@ export default function DoctorDashboard() {
           isRegistered: true,
           title: "Comprehensive Cardiac Angiography & Stress Study",
           patientName: PATIENT_ROSTER[0].name,
-          department: "St. Jude Heart Institute",
+          department: "St. Jude Heart Institute"
         }),
         hasPermission: accessStatus.hasAccess,
         isEmergencyOverride: accessStatus.isEmergency,
-        durationLabel: accessStatus.durationLabel,
+        durationLabel: accessStatus.durationLabel
       }));
     } else {
       if (!account || prevDemoRef.current) {
@@ -212,7 +225,35 @@ export default function DoctorDashboard() {
     prevDemoRef.current = isDemoMode;
   }, [isDemoMode, account]);
 
-  // Switch patient from left roster
+  // Synchronize when custom events fire (permissions changed, reset)
+  useEffect(() => {
+    const handleSync = () => {
+      if (isDemoMode && searchResult?.recordHash) {
+        const accessStatus = checkDemoAccess(
+          searchResult.recordHash,
+          account || DEMO_PROFILES.doctor.address
+        );
+        setSearchResult((prev) =>
+          prev
+            ? {
+                ...prev,
+                hasPermission: accessStatus.hasAccess,
+                isEmergencyOverride: accessStatus.isEmergency,
+                durationLabel: accessStatus.durationLabel
+              }
+            : prev
+        );
+      }
+    };
+    window.addEventListener("ehr:permissions-changed", handleSync);
+    window.addEventListener("ehr:reset", handleSync);
+    return () => {
+      window.removeEventListener("ehr:permissions-changed", handleSync);
+      window.removeEventListener("ehr:reset", handleSync);
+    };
+  }, [isDemoMode, account, searchResult?.recordHash]);
+
+  // Select patient from ward roster
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
     setInputHash(patient.hash);
@@ -238,10 +279,11 @@ export default function DoctorDashboard() {
       durationLabel,
       title: `${patient.name} Clinical Study`,
       patientName: patient.name,
-      department: "Cardiology & Telemetry Core",
+      department: "Cardiology & Telemetry Core"
     });
   };
 
+  // Check on-chain access rights
   const handleCheckAccess = async (e, overrideHash = null) => {
     e?.preventDefault();
     const targetHash = (overrideHash || inputHash).trim();
@@ -278,7 +320,7 @@ export default function DoctorDashboard() {
           durationLabel: accessStatus.durationLabel,
           title: matched ? matched.diagnosis : "Cardiovascular Clinical Study",
           patientName: matched ? matched.name : "Alex Mercer",
-          department: "St. Jude Heart Institute",
+          department: "St. Jude Heart Institute"
         });
         if (matched) setSelectedPatient(matched);
         return;
@@ -305,8 +347,12 @@ export default function DoctorDashboard() {
         isRegistered,
         hasPermission,
         title: matched ? matched.diagnosis : "Clinical Electronic Health Record",
-        patientName: matched ? matched.name : (owner !== ethers.ZeroAddress ? `Patient (${shortenAddress(owner)})` : "Unregistered"),
-        department: "General Medical Core",
+        patientName: matched
+          ? matched.name
+          : owner !== ethers.ZeroAddress
+          ? `Patient (${shortenAddress(owner)})`
+          : "Unregistered",
+        department: "General Medical Core"
       });
       if (matched) setSelectedPatient(matched);
     } catch (err) {
@@ -314,13 +360,14 @@ export default function DoctorDashboard() {
       setNotification({
         type: "error",
         title: "Verification Error",
-        message: parseContractError(err),
+        message: parseContractError(err)
       });
     } finally {
       setIsSearching(false);
     }
   };
 
+  // Broadcast access request on-chain
   const handleRequestAccess = async () => {
     if (!searchResult) return;
     if (isDemoMode) {
@@ -333,13 +380,13 @@ export default function DoctorDashboard() {
           recordHash: searchResult.recordHash,
           doctor: account || DEMO_PROFILES.doctor.address,
           patient: searchResult.owner,
-          details: `Physician consultation request broadcasted for record ${shortenHash(searchResult.recordHash)} to patient ${searchResult.patientName || "Patient"}.`,
+          details: `Physician consultation request broadcasted for record ${shortenHash(searchResult.recordHash)} to patient ${searchResult.patientName || "Patient"}.`
         });
         setNotification({
           type: "success",
           title: "Consultation Request Dispatched",
           message: `Official access request broadcasted for record ${shortenHash(searchResult.recordHash)}. Patient notified.`,
-          txHash: "0x7b29a1f...demo99",
+          txHash: "0x7b29a1f...demo99"
         });
       }, 1000);
       return;
@@ -349,7 +396,7 @@ export default function DoctorDashboard() {
       setNotification({
         type: "error",
         title: "Signer Wallet Required",
-        message: "Please connect your MetaMask wallet to broadcast an access request on-chain.",
+        message: "Please connect your MetaMask wallet to broadcast an access request on-chain."
       });
       return;
     }
@@ -363,19 +410,20 @@ export default function DoctorDashboard() {
         type: "success",
         title: "Access Request Broadcasted",
         message: `On-chain AccessRequested event emitted for record ${shortenHash(searchResult.recordHash)}.`,
-        txHash: receipt.hash,
+        txHash: receipt.hash
       });
     } catch (err) {
       setNotification({
         type: "error",
         title: "Request Failed",
-        message: parseContractError(err),
+        message: parseContractError(err)
       });
     } finally {
       setIsRequesting(false);
     }
   };
 
+  // Execute Break-Glass Emergency Override
   const handleExecuteBreakGlass = async (e) => {
     e?.preventDefault();
     if (!searchResult) return;
@@ -400,13 +448,13 @@ export default function DoctorDashboard() {
         setSearchResult((prev) => ({
           ...prev,
           hasPermission: true,
-          isEmergencyOverride: true,
+          isEmergencyOverride: true
         }));
         setNotification({
           type: "warning",
           title: "Emergency Break-Glass Override Enacted",
-          message: `Emergency access granted for 24h. Forensic event recorded on Sepolia blockchain. Reason: "${justification}".`,
-          txHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678",
+          message: `Emergency access granted for 24 hours. Forensic audit event recorded indelibly. Reason: "${justification}".`,
+          txHash: "0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678"
         });
       }, 1200);
       return;
@@ -431,13 +479,13 @@ export default function DoctorDashboard() {
       setSearchResult((prev) => ({
         ...prev,
         hasPermission: true,
-        isEmergencyOverride: true,
+        isEmergencyOverride: true
       }));
       setNotification({
         type: "warning",
         title: "Break-Glass Protocol Activated",
-        message: `Emergency 24-hour access granted. Forensic audit log recorded permanently on blockchain.`,
-        txHash: receipt.hash,
+        message: "Emergency 24-hour access granted. Forensic audit log recorded permanently on blockchain.",
+        txHash: receipt.hash
       });
     } catch (err) {
       setBreakGlassError(parseContractError(err));
@@ -446,6 +494,7 @@ export default function DoctorDashboard() {
     }
   };
 
+  // Commit Consultation Directives
   const handleCommitConsultationOrder = (e) => {
     e.preventDefault();
     setIsSubmittingOrder(true);
@@ -457,45 +506,16 @@ export default function DoctorDashboard() {
         recordHash: searchResult?.recordHash || "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
         doctor: account || DEMO_PROFILES.doctor.address,
         patient: searchResult?.owner || DEMO_PROFILES.patient.address,
-        details: `Consultation note with LOINC directives encrypted with AES-GCM-256 and anchored to Block. EIP-712 Signature verified for Dr. Sarah Chen.`,
+        details: "Consultation note with LOINC directives encrypted with AES-GCM-256 and anchored to block. EIP-712 Signature verified."
       });
       setNotification({
         type: "success",
-        title: "Clinical Directive Committed to Blockchain",
-        message: `Consultation note encrypted with AES-GCM-256 and anchored to Block #19,843,015. EIP-712 Signature verified for Dr. Sarah Chen.`,
-        txHash: "0x89fbc02...attested99",
+        title: "Clinical Directive Committed",
+        message: "Consultation note encrypted with AES-GCM-256 and anchored to Block. EIP-712 Signature verified.",
+        txHash: "0x89fbc02...attested99"
       });
     }, 1200);
   };
-
-  useEffect(() => {
-    const handleSync = () => {
-      if (isDemoMode) {
-        if (searchResult?.recordHash) {
-          const accessStatus = checkDemoAccess(
-            searchResult.recordHash,
-            account || DEMO_PROFILES.doctor.address
-          );
-          setSearchResult((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  hasPermission: accessStatus.hasAccess,
-                  isEmergencyOverride: accessStatus.isEmergency,
-                  durationLabel: accessStatus.durationLabel,
-                }
-              : prev
-          );
-        }
-      }
-    };
-    window.addEventListener("ehr:permissions-changed", handleSync);
-    window.addEventListener("ehr:reset", handleSync);
-    return () => {
-      window.removeEventListener("ehr:permissions-changed", handleSync);
-      window.removeEventListener("ehr:reset", handleSync);
-    };
-  }, [isDemoMode, account, searchResult?.recordHash]);
 
   const removeLoinc = (code) => {
     setLoincCodes(loincCodes.filter((c) => c !== code));
@@ -507,7 +527,15 @@ export default function DoctorDashboard() {
     }
   };
 
-  // State A: Disconnected / Unauthenticated Gateway (Neither in Demo Mode nor connected with Web3 Wallet)
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedHash(true);
+    setTimeout(() => setCopiedHash(false), 2000);
+  };
+
+  // =========================================================================
+  // GATEWAY STATE: Unauthenticated / Disconnected Screen
+  // =========================================================================
   if (!account && !isDemoMode) {
     return (
       <div className="space-y-8 max-w-5xl mx-auto py-6">
@@ -517,41 +545,39 @@ export default function DoctorDashboard() {
           onClose={() => setIsJargonModalOpen(false)}
         />
 
-        {/* HERO CARD */}
-        <div className="surface-card card-premium shimmer-card rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-
-          <div className="relative z-10 flex flex-col items-center text-center max-w-2xl mx-auto">
+        {/* Hero Clinical Gateway Card */}
+        <div className="surface-card rounded-2xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden text-center">
+          <div className="max-w-2xl mx-auto space-y-6">
             {/* Status Beacon */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-xs font-mono font-semibold mb-6 shadow-2xs">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] border border-[#0284C7]/30 text-xs font-mono font-semibold">
               <span className="relative flex h-2 w-2">
-                <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0284C7] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0284C7]" />
               </span>
-              <span>HOSPITAL ENCLAVE • PHYSICIAN CREDENTIALS REQUIRED</span>
+              <span>HOSPITAL ENCLAVE • PHYSICIAN ATTESTATION REQUIRED</span>
             </div>
 
-            {/* Clinician Icon */}
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 mb-6 animate-subtle-pulse">
-              <Stethoscope className="w-8 h-8 text-white" />
+            {/* Emblem Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center shadow-lg shadow-[#0284C7]/20 mx-auto">
+              <Stethoscope className="w-8 h-8" />
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-              Physician Clinical Workstation
-            </h1>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading tracking-tight">
+                Physician Clinical Workstation
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed mt-3 max-w-xl mx-auto">
+                Access sovereign patient records, issue EIP-712 diagnostic directives, and execute legally-audited emergency break-glass overrides with zero backend intermediaries.
+              </p>
+            </div>
 
-            <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed mb-8">
-              Clinical consultations, LOINC orders, and emergency break-glass protocols require an attested healthcare provider identity. Connect your physician Web3 wallet or launch our interactive hospital simulation.
-            </p>
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full justify-center">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
               <button
                 type="button"
                 onClick={connectWallet}
                 disabled={isConnecting}
-                className="btn-premium w-full sm:w-auto h-12 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-tight shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+                className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white font-bold text-sm tracking-tight shadow-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none disabled:opacity-60"
               >
                 {isConnecting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -564,46 +590,52 @@ export default function DoctorDashboard() {
               <button
                 type="button"
                 onClick={() => enterDemoMode("doctor")}
-                className="btn-premium group w-full sm:w-auto h-12 px-6 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 font-bold text-sm tracking-tight shadow-sm flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto h-12 px-6 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-bold text-sm tracking-tight shadow-2xs flex items-center justify-center gap-2.5 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
               >
-                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 transition-transform group-hover:scale-110" />
+                <Sparkles className="w-4 h-4 text-[#0284C7]" />
                 <span>Launch Doctor Demo (Dr. Sarah Chen)</span>
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-500 mt-4 font-mono">
-              EIP-712 Attested Orders • Forensic Break-Glass Logging
+            <p className="text-xs text-slate-500 font-mono">
+              EIP-712 Attested Orders • Forensic Break-Glass Logging • Zero-Knowledge Enclave
             </p>
           </div>
         </div>
 
-        {/* 3 Workflow Pillar Cards */}
+        {/* 3 Swiss Capability Pillar Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/20">
+          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0284C7]/10 text-[#0284C7] flex items-center justify-center border border-[#0284C7]/20">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Smart Contract Attestation</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+              Smart Contract Attestation
+            </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Verify patient access delegations and consultation time-locks in real-time with zero backend intermediaries.
+              Verify patient access delegations and consultation time-locks in real-time with direct EVM smart contract calls.
             </p>
           </div>
 
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200 dark:border-rose-500/20">
+          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-500/20">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Emergency Break-Glass</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+              Emergency Break-Glass
+            </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               HIPAA &amp; HL7 trauma override with indelible forensic justification recorded permanently on the blockchain.
             </p>
           </div>
 
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200 dark:border-cyan-500/20">
+          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0891B2]/10 text-[#0891B2] flex items-center justify-center border border-[#0891B2]/20">
               <FileCode className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">EIP-712 Clinical Orders</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+              EIP-712 Clinical Orders
+            </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Issue tamper-proof LOINC diagnostic orders and clinical consultation directives signed with your provider private key.
             </p>
@@ -613,6 +645,21 @@ export default function DoctorDashboard() {
     );
   }
 
+  // Active Patient Display Values
+  const patientDisplayName = selectedPatient?.name || searchResult?.patientName || "Attested Patient Node";
+  const patientInitials = patientDisplayName.split(" ").map((n) => n[0]).join("") || "PT";
+  const patientMrn = selectedPatient?.mrn || (searchResult?.owner ? `DID:ETH • ${shortenAddress(searchResult.owner)}` : "MRN-ENCLAVE");
+  const patientDob = selectedPatient?.dob || "Dec 14, 1982";
+  const patientAge = selectedPatient?.age || 41;
+  const patientGender = selectedPatient?.gender || "Verified Enclave";
+  const patientBlood = selectedPatient?.bloodType || "O+ Rh(D) Pos";
+  const patientVitals = selectedPatient?.vitals || { bp: "118/78", hr: "72", glucose: "94", spo2: "99" };
+  const patientCid = selectedPatient?.cid || searchResult?.cid || "QmZtmD2qt8fJv3CL8FnjqiusxVHYM1zG29Uej3QakDEnV8";
+  const patientHash = selectedPatient?.hash || searchResult?.recordHash || "0x1111111111111111111111111111111111111111111111111111111111111111";
+
+  // =========================================================================
+  // AUTHENTICATED CLINICAL WORKSTATION
+  // =========================================================================
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast Notification */}
@@ -644,7 +691,7 @@ export default function DoctorDashboard() {
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                     Emergency Break-Glass Protocol
                   </h3>
                   <p className="text-xs text-rose-600 dark:text-rose-400 font-mono">
@@ -662,11 +709,11 @@ export default function DoctorDashboard() {
 
             <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-amber-900 dark:text-amber-300 text-xs space-y-1">
               <div className="font-bold flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>MANDATORY FORENSIC AUDIT DISCLOSURE (HIPAA &amp; HL7)</span>
               </div>
               <p className="leading-relaxed text-slate-600 dark:text-slate-300">
-                This emergency trauma override bypasses patient consent for 24 hours. Your physician identity and this justification will be <strong>permanently and indelibly recorded on the Ethereum blockchain</strong>.
+                This emergency override bypasses standard consent for 24 hours. Your physician identity and justification will be <strong>permanently and indelibly recorded on the blockchain</strong>.
               </p>
             </div>
 
@@ -687,24 +734,26 @@ export default function DoctorDashboard() {
                   placeholder="e.g. Unconscious acute motor vehicle trauma; requires immediate cardiac angiography & allergy panel to prevent fatal anaphylaxis."
                   value={breakGlassJustification}
                   onChange={(e) => setBreakGlassJustification(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 transition-all resize-none outline-none shadow-2xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 transition-all resize-none outline-none shadow-2xs focus-visible:ring-2 focus-visible:ring-rose-500"
                 />
                 <div className="pt-1.5 space-y-1.5">
-                  <span className="text-[11px] font-mono text-slate-500 block">Preset Emergency Scenarios (1-Click Fill):</span>
+                  <span className="text-[11px] font-mono text-slate-500 block">
+                    Preset Clinical Scenarios (1-Click Fill):
+                  </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                     {[
                       {
-                        label: "🚑 Trauma & Shock",
-                        text: "Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.",
+                        label: "Trauma & Shock",
+                        text: "Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required."
                       },
                       {
-                        label: "❤️ STEMI / Cath Lab",
-                        text: "Acute ST-Elevation Myocardial Infarction in Cath Lab; urgent coronary angiography and anticoagulant history review required.",
+                        label: "Cath Lab / STEMI",
+                        text: "Acute ST-Elevation Myocardial Infarction in Cath Lab; urgent coronary angiography and anticoagulant history review required."
                       },
                       {
-                        label: "🧠 Stroke / Neuro",
-                        text: "Acute ischemic stroke onset < 3 hours; emergency thrombolytic contraindication screen and intracranial scan review required.",
-                      },
+                        label: "Stroke / Neuro",
+                        text: "Acute ischemic stroke onset < 3 hours; emergency thrombolytic contraindication screen and intracranial scan review required."
+                      }
                     ].map((scenario) => (
                       <button
                         key={scenario.label}
@@ -734,9 +783,13 @@ export default function DoctorDashboard() {
                 <button
                   type="submit"
                   disabled={isExecutingBreakGlass || breakGlassJustification.trim().length < 10}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none"
                 >
-                  {isExecutingBreakGlass ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  {isExecutingBreakGlass ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  )}
                   <span>Execute Break-Glass Override</span>
                 </button>
               </div>
@@ -745,23 +798,23 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {/* TOP CLINICIAN APP BAR (Stitch Clinical Blueprint) */}
-      <section className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* TOP CLINICIAN APP BAR */}
+      <section className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-full bg-cyan-100 dark:bg-cyan-950/60 ring-2 ring-cyan-500/30 flex items-center justify-center font-bold text-cyan-800 dark:text-cyan-300 font-mono text-sm shrink-0">
-            {isDemoMode ? "SC" : (account ? account.substring(2, 4).toUpperCase() : "MD")}
+          <div className="w-11 h-11 rounded-2xl bg-[#0284C7]/10 border border-[#0284C7]/30 flex items-center justify-center font-bold text-[#0284C7] dark:text-[#38BDF8] font-mono text-sm shrink-0">
+            {isDemoMode ? "SC" : account ? account.substring(2, 4).toUpperCase() : "MD"}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white font-heading tracking-tight">
                 {isDemoMode ? "Dr. Sarah Chen, MD, FACC" : "Clinical Provider Workstation"}
               </h1>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
                 <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                 {isDemoMode ? "Licensed Cardiologist" : "Attested Physician Node"}
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
               {isDemoMode
                 ? "Chief of Interventional Cardiology • St. Jude Heart Institute"
                 : `Ethereum Node: ${shortenAddress(account)} • Zero-Knowledge Physician Terminal`}
@@ -769,36 +822,40 @@ export default function DoctorDashboard() {
           </div>
         </div>
 
-        {/* Doctor Wallet Pill & Emergency Break-Glass Shortcut */}
+        {/* Doctor Address Tag & Toolbar Controls */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* Doctor Wallet Tag */}
+          {/* Address Tag */}
           <div className="flex items-center gap-2 h-9 px-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-700 dark:text-slate-300 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>{shortenAddress(account || "0x7F2a42b1099e03d12FA4293BC98B1")}</span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
               {isDemoMode ? "EIP-712 Signed" : "On-Chain Verified"}
             </span>
           </div>
 
-          {/* High-Visibility Break-Glass Emergency Button */}
+          {/* High-Visibility Emergency Break-Glass Button */}
           <button
+            type="button"
             onClick={() => {
-              setBreakGlassJustification("Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.");
+              setBreakGlassJustification(
+                "Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required."
+              );
               setIsBreakGlassOpen(true);
             }}
-            className="btn-premium group flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer animate-subtle-pulse"
+            className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none"
             title="Emergency Trauma Override (24-Hour Forensic Window)"
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 transition-transform group-hover:scale-110" />
-            <span className="whitespace-nowrap">Break-Glass Protocol</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+            <span className="whitespace-nowrap">Break-Glass</span>
           </button>
 
+          {/* Medical Plain-Language Glossary Guide */}
           <button
             type="button"
             onClick={() => setIsJargonModalOpen(true)}
-            className="btn-premium group flex items-center gap-1.5 h-9 px-3 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
           >
-            <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 transition-transform group-hover:scale-110" />
+            <BookOpen className="w-3.5 h-3.5 text-[#0284C7] dark:text-[#38BDF8]" />
             <span>Guide</span>
           </button>
         </div>
@@ -806,18 +863,18 @@ export default function DoctorDashboard() {
 
       {/* MULTI-PANE CLINICAL CHARTING WORKSPACE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: WARD ENCLAVE QUEUE (DEMO) OR RECORD ACCESS LOOKUP (REAL) */}
+        {/* LEFT COLUMN (4 Cols): WARD QUEUE OR SEARCH LOOKUP */}
         <aside className="lg:col-span-4 flex flex-col gap-4">
           {isDemoMode ? (
             <div className="surface-card rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Ward Enclave Queue
+                  <Radio className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-heading">
+                    Ward Patient Queue
                   </h3>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-50 dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] border border-[#0284C7]/20">
                   {PATIENT_ROSTER.length} Active
                 </span>
               </div>
@@ -830,10 +887,10 @@ export default function DoctorDashboard() {
                     <div
                       key={patient.id}
                       onClick={() => handleSelectPatient(patient)}
-                      className={`p-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                      className={`p-3.5 rounded-xl border transition-all duration-150 cursor-pointer ${
                         isSelected
-                          ? "bg-cyan-50/80 dark:bg-cyan-500/10 border-cyan-500 dark:border-cyan-400 shadow-sm ring-1 ring-cyan-500/30 translate-x-1"
-                          : "surface-card card-premium hover:translate-x-1 hover:bg-slate-50 dark:hover:bg-slate-800/40 border-slate-200 dark:border-slate-800"
+                          ? "bg-[#0284C7]/10 border-[#0284C7] dark:border-[#38BDF8] shadow-sm ring-1 ring-[#0284C7]/30"
+                          : "surface-card hover:bg-slate-50 dark:hover:bg-slate-800/40 border-slate-200 dark:border-slate-800"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -842,8 +899,8 @@ export default function DoctorDashboard() {
                             {patient.name.split(" ").map((n) => n[0]).join("")}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              <span>{patient.name}</span>
+                            <div className="text-xs font-bold text-slate-900 dark:text-white font-heading">
+                              {patient.name}
                             </div>
                             <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                               {patient.mrn} • {patient.age}y {patient.gender[0]}
@@ -853,10 +910,10 @@ export default function DoctorDashboard() {
                         <span
                           className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                             patient.status === "Attested"
-                              ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30"
+                              ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                               : patient.status === "Pending"
-                              ? "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30"
-                              : "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30"
+                              ? "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
+                              : "bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] border-[#0284C7]/30"
                           }`}
                         >
                           {patient.status}
@@ -865,7 +922,9 @@ export default function DoctorDashboard() {
 
                       <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                         <span className="truncate max-w-[170px]">{patient.diagnosis}</span>
-                        <span className="font-mono text-[10px] text-cyan-600 dark:text-cyan-400">Enclave {patient.enclaveVersion}</span>
+                        <span className="font-mono text-[10px] text-[#0284C7] dark:text-[#38BDF8]">
+                          Enclave {patient.enclaveVersion}
+                        </span>
                       </div>
                     </div>
                   );
@@ -875,10 +934,7 @@ export default function DoctorDashboard() {
               {/* Sidebar Footer Node Telemetry */}
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 flex items-center justify-between font-mono">
                 <span className="flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   SGX Enclave Node #4
                 </span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100.0% Attested</span>
@@ -888,12 +944,12 @@ export default function DoctorDashboard() {
             <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-heading">
                     Record Access Lookup
                   </h3>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-50 dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] border border-[#0284C7]/30">
                   Live Contract
                 </span>
               </div>
@@ -911,7 +967,7 @@ export default function DoctorDashboard() {
                       placeholder="0x... (32-byte hex) or Qm..."
                       value={inputHash}
                       onChange={(e) => setInputHash(e.target.value)}
-                      className="w-full h-10 pl-3 pr-8 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-cyan-500 transition-colors"
+                      className="w-full h-10 pl-3 pr-8 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-[#0284C7] transition-colors"
                     />
                     {inputHash && (
                       <button
@@ -924,13 +980,21 @@ export default function DoctorDashboard() {
                     )}
                   </div>
 
-                  {/* 1-Click Test Record Presets */}
+                  {/* 1-Click Verification Presets */}
                   <div className="pt-2 space-y-1.5">
-                    <span className="text-[10px] font-mono text-slate-500 block">Sample Multihashes for Verification:</span>
+                    <span className="text-[10px] font-mono text-slate-500 block">
+                      Sample Multihashes for Verification:
+                    </span>
                     <div className="flex flex-col gap-1.5">
                       {[
-                        { label: "Alex Mercer (Post-PCI)", hash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029" },
-                        { label: "Elena Rostova (ACS)", hash: "0x1111111111111111111111111111111111111111111111111111111111111111" },
+                        {
+                          label: "Alex Mercer (Post-PCI)",
+                          hash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029"
+                        },
+                        {
+                          label: "Elena Rostova (ACS)",
+                          hash: "0x1111111111111111111111111111111111111111111111111111111111111111"
+                        }
                       ].map((item) => (
                         <button
                           key={item.label}
@@ -939,10 +1003,12 @@ export default function DoctorDashboard() {
                             setInputHash(item.hash);
                             handleCheckAccess(null, item.hash);
                           }}
-                          className="px-2.5 py-1.5 rounded-lg text-left border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-cyan-500/40 text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-between cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg text-left border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-[#0284C7]/40 text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-between cursor-pointer"
                         >
                           <span className="font-semibold truncate">{item.label}</span>
-                          <span className="font-mono text-[10px] text-cyan-600 dark:text-cyan-400">1-Click Verify</span>
+                          <span className="font-mono text-[10px] text-[#0284C7] dark:text-[#38BDF8]">
+                            1-Click Verify
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -952,7 +1018,7 @@ export default function DoctorDashboard() {
                 <button
                   type="submit"
                   disabled={isSearching || !inputHash.trim()}
-                  className="btn-premium group w-full h-10 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full h-10 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
                 >
                   {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                   <span>Verify Record Permissions</span>
@@ -961,7 +1027,7 @@ export default function DoctorDashboard() {
 
               {/* Current Active Query Summary */}
               {searchResult && (
-                <div className="p-3.5 rounded-xl bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-500/30 space-y-2">
+                <div className="p-3.5 rounded-xl bg-[#0284C7]/5 border border-[#0284C7]/20 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[180px]">
                       {searchResult.patientName || "Queried Record"}
@@ -969,8 +1035,8 @@ export default function DoctorDashboard() {
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                         searchResult.hasPermission
-                          ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30"
-                          : "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30"
+                          ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
+                          : "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
                       }`}
                     >
                       {searchResult.hasPermission ? "Access Authorized" : "Not Authorized"}
@@ -981,399 +1047,418 @@ export default function DoctorDashboard() {
                   </p>
                 </div>
               )}
-
-              {/* Switch to Demo CTA Banner */}
-              <div className="p-4 rounded-xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-500/30 space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-300">
-                  <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <span>Pre-populated Demo Sandbox</span>
-                </div>
-                <p className="text-[11px] text-purple-700/80 dark:text-purple-300/70 leading-relaxed">
-                  Want to explore with 3 simulated cardiology ward patients (Elena Rostova, Marcus Thorne, Liam Gallagher) and preloaded orders?
-                </p>
-                <button
-                  type="button"
-                  onClick={() => enterDemoMode("doctor")}
-                  className="w-full h-8 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span>Launch Doctor Demo</span>
-                </button>
-              </div>
-
-              {/* Security Telemetry Footer */}
-              <div className="pt-2 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between font-mono">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Zero-Knowledge Provider Bridge
-                </span>
-                <span>Sepolia Live</span>
-              </div>
             </div>
           )}
         </aside>
 
-        {/* MAIN TERMINAL WORKSPACE (8 Cols) */}
+        {/* RIGHT COLUMN (8 Cols): MAIN TERMINAL WORKSPACE */}
         {!selectedPatient && !searchResult ? (
-          <main className="lg:col-span-8 flex flex-col gap-6 animate-fade-in-scale">
+          <main className="lg:col-span-8 flex flex-col gap-6">
             <div className="surface-card rounded-2xl p-10 border border-slate-200 dark:border-slate-800 shadow-sm text-center flex flex-col items-center justify-center min-h-[460px] space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200 dark:border-cyan-500/20 shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] flex items-center justify-center border border-[#0284C7]/20 shadow-2xs">
                 <Stethoscope className="w-8 h-8" />
               </div>
               <div className="max-w-md space-y-1.5">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white font-heading">
                   Physician Consultation Terminal Ready
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  No patient record is currently loaded in this consultation session. Enter a patient's record hash or IPFS CID in the verification panel on the left to verify cryptographic delegations and review decrypted diagnostic telemetry.
+                  No patient record is currently loaded. Enter a patient record hash or IPFS CID in the lookup panel to verify on-chain permissions and review encrypted telemetry.
                 </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg text-left pt-2">
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-white">
-                    <ShieldCheck className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>Time-Locked Delegation</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    Verify whether the patient has granted your physician address temporary or indefinite consultation rights.
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-white">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Emergency Break-Glass</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    In acute trauma scenarios, override access restrictions with an indelible forensic justification logged on-chain.
-                  </p>
-                </div>
               </div>
 
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={() => enterDemoMode("doctor")}
-                  className="btn-premium px-5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
                 >
-                  <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <Sparkles className="w-4 h-4 text-[#0284C7]" />
                   <span>Launch Doctor Demo Sandbox</span>
                 </button>
               </div>
             </div>
 
-            {/* REAL-TIME CRYPTOGRAPHIC ACCESS AUDIT FEED */}
-            <div className="surface-card card-premium shimmer-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            {/* Audit Feed */}
+            <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <Activity className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
                     Real-Time Cryptographic Access Audit Feed
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-emerald-600 flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  Zero-Knowledge Rollup Sync: Live
+                <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Live Sync
                 </span>
               </div>
               <ActivityFeed />
             </div>
           </main>
         ) : (
-          (() => {
-            const patientDisplayName = selectedPatient?.name || searchResult?.patientName || "Attested Patient Node";
-            const patientInitials = patientDisplayName.split(" ").map((n) => n[0]).join("") || "PT";
-            const patientMrn = selectedPatient?.mrn || (searchResult?.owner ? `DID:ETH • ${shortenAddress(searchResult.owner)}` : "MRN-ENCLAVE");
-            const patientDob = selectedPatient?.dob || "Dec 14, 1982";
-            const patientAge = selectedPatient?.age || 41;
-            const patientGender = selectedPatient?.gender || "Verified Enclave";
-            const patientBlood = selectedPatient?.bloodType || "O+ Rh(D) Pos";
-            const patientVitals = selectedPatient?.vitals || { bp: "118/78", hr: "72", glucose: "94", spo2: "99" };
-            const patientCid = selectedPatient?.cid || searchResult?.cid || "QmZtmD2qt8fJv3CL8FnjqiusxVHYM1zG29Uej3QakDEnV8";
-            const patientHash = selectedPatient?.hash || searchResult?.recordHash || "0x1111111111111111111111111111111111111111111111111111111111111111";
-
-            return (
-              <main key={selectedPatient?.id || searchResult?.recordHash || "active"} className="lg:col-span-8 flex flex-col gap-6 animate-fade-in-scale">
-                {/* PATIENT QUICK-CHART HEADER & LIVE TELEMETRY */}
-                <section className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center font-bold text-base font-mono shadow-sm">
-                        {patientInitials}
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                            {patientDisplayName}
-                          </h2>
-                          <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                            {patientMrn}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            {searchResult?.hasPermission ? "Sovereign Enclave Consent Granted" : "Delegation Verification Required"}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          <span>DOB: {patientDob} ({patientAge}y)</span>
-                          <span>•</span>
-                          <span>Gender: {patientGender}</span>
-                          <span>•</span>
-                          <span>Blood: {patientBlood}</span>
-                          <span>•</span>
-                          <span className="font-mono text-cyan-600 dark:text-cyan-400">SGX Nitro v2.4 Enclave</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 self-start sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => setIsDecryptOpen(true)}
-                        className="btn-premium group px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+          <main className="lg:col-span-8 flex flex-col gap-6">
+            {/* 1. PATIENT HEADER & VITALS TELEMETRY */}
+            <section className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center font-bold text-base font-mono shadow-sm">
+                    {patientInitials}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight font-heading">
+                        {patientDisplayName}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                        {patientMrn}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                          searchResult?.hasPermission
+                            ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
+                            : "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
+                        }`}
                       >
-                        <Unlock className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-                        <span>Decrypt Record</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 4 Telemetry Metric Tiles */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
-                      <span className="text-[10px] font-mono text-slate-500">ARTERIAL PRESSURE</span>
-                      <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
-                        {patientVitals.bp} <span className="text-xs font-normal text-slate-500">mmHg</span>
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-semibold">● Optimal Normotensive</div>
-                    </div>
-
-                    <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-slate-500">HEART RATE (ECG)</span>
-                        <Heart className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
-                      </div>
-                      <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
-                        {patientVitals.hr} <span className="text-xs font-normal text-slate-500">bpm</span>
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-semibold">● Sinus Rhythm Regular</div>
-                    </div>
-
-                    <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
-                      <span className="text-[10px] font-mono text-slate-500">FASTING GLUCOSE</span>
-                      <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
-                        {patientVitals.glucose} <span className="text-xs font-normal text-slate-500">mg/dL</span>
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-semibold">● Euglycemic Index</div>
-                    </div>
-
-                    <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
-                      <span className="text-[10px] font-mono text-slate-500">OXYGEN SATURATION</span>
-                      <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
-                        {patientVitals.spo2}% <span className="text-xs font-normal text-slate-500">SpO2</span>
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-semibold">● Room Air Normal</div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* TWO-COLUMN DIAGNOSTIC & ORDER SUITE */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  {/* PANEL A: Decentralized Enclave Ingestion & Attestation Engine */}
-                  <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Enclave Ingestion Engine
-                        </h3>
-                      </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                        ZK-SNARK Validated
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        {searchResult?.hasPermission
+                          ? "Consent Granted"
+                          : "Verification Required"}
                       </span>
                     </div>
-
-                    {/* Cryptographic Hashes */}
-                    <div className="space-y-2 text-xs font-mono">
-                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                        <div className="text-[10px] text-slate-500">IPFS ENCLAVE CIDv0:</div>
-                        <div className="text-cyan-700 dark:text-cyan-400 break-all select-all text-[11px]">
-                          {patientCid}
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                        <div className="text-[10px] text-slate-500">EVM BYTES32 STATE ROOT:</div>
-                        <div className="text-slate-800 dark:text-slate-300 break-all select-all text-[11px]">
-                          {patientHash}
-                        </div>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <span>DOB: {patientDob} ({patientAge}y)</span>
+                      <span>•</span>
+                      <span>Gender: {patientGender}</span>
+                      <span>•</span>
+                      <span>Blood: {patientBlood}</span>
+                      <span>•</span>
+                      <span className="font-mono text-[#0284C7] dark:text-[#38BDF8]">
+                        SGX Nitro v2.4 Enclave
+                      </span>
                     </div>
+                  </div>
+                </div>
 
-                    {/* Action Button: Authorize & Decrypt */}
+                {/* Top Action Button: Decrypt Record */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {searchResult?.hasPermission ? (
                     <button
                       type="button"
                       onClick={() => setIsDecryptOpen(true)}
-                      className="btn-premium group w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
                     >
-                      <Unlock className="w-4 h-4 transition-transform group-hover:scale-110" />
-                      <span>Authorize &amp; Decrypt Enclave Record (EIP-712)</span>
+                      <Unlock className="w-3.5 h-3.5" />
+                      <span>Decrypt Clinical Record</span>
                     </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRequestAccess}
+                      disabled={isRequesting}
+                      className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {isRequesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Key className="w-3.5 h-3.5" />}
+                      <span>Request Access</span>
+                    </button>
+                  )}
+                </div>
+              </div>
 
-                    {/* Decrypted Diagnostic Telemetry Readout */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2.5">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
-                        <span className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300">
-                          <FileText className="w-3.5 h-3.5" />
-                          Decrypted Diagnostic Telemetry (Readout)
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500">Block #19,842,910</span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {selectedPatient?.id === "elena"
-                          ? "Acute Coronary Syndrome Telemetry: Serial high-sensitivity Troponin I negative at 3h interval (<0.01 ng/mL). Stress echocardiogram demonstrates preserved regional wall motion with estimated LVEF 60%. Mild ST-T wave changes resolved on ambulatory ECG."
-                          : selectedPatient?.id === "marcus"
-                          ? "24-Hour Ambulatory Holter ECG: Sinus bradycardia with nocturnal pauses up to 2.1s. Intermittent PR interval prolongation consistent with Mobitz I AV block. No sustained ventricular tachycardia. Electrolytes, TSH, and echocardiography within normal parameters."
-                          : "Coronary CT Angiography & Holter 24h summary: Zero ischemia detected during Bruce protocol treadmill test. Moderate proximal Left Anterior Descending (LAD) plaque identified without significant luminal compromise (estimated 25-30% stenosis). Preserved left ventricular ejection fraction (LVEF 62%). Normal sinus rhythm maintained."}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                          ● {selectedPatient?.id === "elena" ? "hs-cTnI: <0.01 ng/mL (Normal)" : selectedPatient?.id === "marcus" ? "PR Interval: 180 ms (Normal)" : "Total Cholesterol: 185 mg/dL (In-Range)"}
-                        </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                          ● {selectedPatient?.id === "elena" ? "CK-MB: 1.8 ng/mL (Normal)" : selectedPatient?.id === "marcus" ? "Serum Potassium: 4.2 mmol/L" : "Triglycerides: 130 mg/dL (Normal)"}
-                        </span>
-                      </div>
-                    </div>
+              {/* 4 Swiss Telemetry Metric Tiles */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="surface-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase">Arterial Pressure</span>
+                  <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
+                    {patientVitals.bp} <span className="text-xs font-normal text-slate-500">mmHg</span>
                   </div>
-
-                  {/* PANEL B: Consultation Order & Note Entry Form */}
-                  <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <Stethoscope className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Consultation Order &amp; Directives
-                        </h3>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-500">
-                        FHIR::Composition/R4
-                      </span>
-                    </div>
-
-                    <form onSubmit={handleCommitConsultationOrder} className="space-y-3.5">
-                      {/* Associated LOINC Codes Chips */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <label className="font-semibold text-slate-700 dark:text-slate-300">
-                            Associated Diagnostic LOINC Codes
-                          </label>
-                          <span className="text-[10px] text-cyan-600 font-mono">LOINC v2.74 Ontology</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 min-h-[42px]">
-                          {loincCodes.map((code) => (
-                            <span
-                              key={code}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30"
-                            >
-                              <span>{code}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeLoinc(code)}
-                                className="text-cyan-600 hover:text-cyan-900 dark:hover:text-white cursor-pointer ml-1"
-                              >
-                                ✕
-                              </button>
-                            </span>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={addLoinc}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-mono text-slate-500 hover:text-cyan-600 border border-dashed border-slate-300 dark:border-slate-700 hover:border-cyan-500 cursor-pointer"
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>Add LOINC 8867-4</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Clinical Impression & Care Directives */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <label className="font-semibold text-slate-700 dark:text-slate-300">
-                            Clinical Impression &amp; Care Directives
-                          </label>
-                          <span className="text-[10px] font-mono text-purple-600">AES-GCM-256 Encrypted</span>
-                        </div>
-                        <textarea
-                          rows={4}
-                          value={clinicalNotes}
-                          onChange={(e) => setClinicalNotes(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs leading-relaxed outline-none resize-none shadow-2xs"
-                        />
-                      </div>
-
-                      {/* Clinical Checkboxes */}
-                      <div className="space-y-2 pt-1 text-xs">
-                        <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={sigVerified}
-                            onChange={(e) => setSigVerified(e.target.checked)}
-                            className="rounded text-cyan-600 focus:ring-cyan-500 w-4 h-4"
-                          />
-                          <span>Digital Signature Verified (Physician Enclave Key)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={requireReconsent}
-                            onChange={(e) => setRequireReconsent(e.target.checked)}
-                            className="rounded text-cyan-600 focus:ring-cyan-500 w-4 h-4"
-                          />
-                          <span>Require Sovereign Patient Re-Consent for Inter-Hospital Transfer</span>
-                        </label>
-                      </div>
-
-                      {/* Submit CTA */}
-                      <button
-                        type="submit"
-                        disabled={isSubmittingOrder}
-                        className="btn-premium group w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        {isSubmittingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4 transition-transform group-hover:scale-110" />}
-                        <span>Commit Encrypted Record to Blockchain (Sign &amp; Anchor Tx)</span>
-                      </button>
-                    </form>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    Optimal Normotensive
                   </div>
                 </div>
 
-                {/* REAL-TIME CRYPTOGRAPHIC ACCESS AUDIT FEED */}
-                <div className="surface-card card-premium shimmer-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Real-Time Cryptographic Access Audit Feed
-                      </h3>
+                <div className="surface-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase">Heart Rate (ECG)</span>
+                    <Heart className="w-3.5 h-3.5 text-rose-500" />
+                  </div>
+                  <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
+                    {patientVitals.hr} <span className="text-xs font-normal text-slate-500">bpm</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    Sinus Rhythm Regular
+                  </div>
+                </div>
+
+                <div className="surface-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase">Fasting Glucose</span>
+                  <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
+                    {patientVitals.glucose} <span className="text-xs font-normal text-slate-500">mg/dL</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    Euglycemic Index
+                  </div>
+                </div>
+
+                <div className="surface-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase">Oxygen Saturation</span>
+                  <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
+                    {patientVitals.spo2}% <span className="text-xs font-normal text-slate-500">SpO2</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    Room Air Normal
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. SWISS SEGMENTED TAB SWITCHER */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-fit">
+              <button
+                type="button"
+                onClick={() => setActiveTab("diagnostics")}
+                className={`flex items-center gap-2 h-8 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none ${
+                  activeTab === "diagnostics"
+                    ? "bg-[#0284C7] text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Diagnostic Telemetry</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("directives")}
+                className={`flex items-center gap-2 h-8 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none ${
+                  activeTab === "directives"
+                    ? "bg-[#0284C7] text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Stethoscope className="w-3.5 h-3.5" />
+                <span>Orders &amp; Directives</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("audit")}
+                className={`flex items-center gap-2 h-8 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none ${
+                  activeTab === "audit"
+                    ? "bg-[#0284C7] text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Audit Trail</span>
+              </button>
+            </div>
+
+            {/* TAB CONTENT 1: DIAGNOSTIC READOUT */}
+            {activeTab === "diagnostics" && (
+              <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+                      Enclave Ingestion Engine
+                    </h3>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                    ZK-SNARK Validated
+                  </span>
+                </div>
+
+                {/* Cryptographic Hashes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span>IPFS ENCLAVE CIDv0:</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(patientCid)}
+                        className="text-[#0284C7] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>{copiedHash ? "Copied" : "Copy"}</span>
+                      </button>
                     </div>
-                    <span className="text-xs font-mono text-emerald-600 flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                      </span>
-                      Zero-Knowledge Rollup Sync: Live
+                    <div className="text-[#0284C7] dark:text-[#38BDF8] break-all select-all text-[11px]">
+                      {patientCid}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span>EVM BYTES32 STATE ROOT:</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(patientHash)}
+                        className="text-[#0284C7] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>{copiedHash ? "Copied" : "Copy"}</span>
+                      </button>
+                    </div>
+                    <div className="text-slate-800 dark:text-slate-300 break-all select-all text-[11px]">
+                      {patientHash}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decrypted Diagnostic Telemetry Readout */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    <span className="flex items-center gap-1.5 text-[#0284C7] dark:text-[#38BDF8]">
+                      <FileText className="w-3.5 h-3.5" />
+                      Decrypted Diagnostic Telemetry (Readout)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">Block #19,842,910</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                    {selectedPatient?.id === "elena"
+                      ? "Acute Coronary Syndrome Telemetry: Serial high-sensitivity Troponin I negative at 3h interval (<0.01 ng/mL). Stress echocardiogram demonstrates preserved regional wall motion with estimated LVEF 60%. Mild ST-T wave changes resolved on ambulatory ECG."
+                      : selectedPatient?.id === "marcus"
+                      ? "24-Hour Ambulatory Holter ECG: Sinus bradycardia with nocturnal pauses up to 2.1s. Intermittent PR interval prolongation consistent with Mobitz I AV block. No sustained ventricular tachycardia. Electrolytes, TSH, and echocardiography within normal parameters."
+                      : "Coronary CT Angiography & Holter 24h summary: Zero ischemia detected during Bruce protocol treadmill test. Moderate proximal Left Anterior Descending (LAD) plaque identified without significant luminal compromise (estimated 25-30% stenosis). Preserved left ventricular ejection fraction (LVEF 62%). Normal sinus rhythm maintained."}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                      ● {selectedPatient?.id === "elena" ? "hs-cTnI: <0.01 ng/mL (Normal)" : selectedPatient?.id === "marcus" ? "PR Interval: 180 ms (Normal)" : "Total Cholesterol: 185 mg/dL (In-Range)"}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                      ● {selectedPatient?.id === "elena" ? "CK-MB: 1.8 ng/mL (Normal)" : selectedPatient?.id === "marcus" ? "Serum Potassium: 4.2 mmol/L" : "Triglycerides: 130 mg/dL (Normal)"}
                     </span>
                   </div>
-                  <ActivityFeed />
                 </div>
-              </main>
-            );
-          })()
+              </div>
+            )}
+
+            {/* TAB CONTENT 2: ORDERS & DIRECTIVES */}
+            {activeTab === "directives" && (
+              <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Stethoscope className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+                      Consultation Order &amp; Directives
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    FHIR::Composition/R4
+                  </span>
+                </div>
+
+                <form onSubmit={handleCommitConsultationOrder} className="space-y-4">
+                  {/* Associated LOINC Codes Chips */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <label className="font-semibold text-slate-700 dark:text-slate-300">
+                        Associated Diagnostic LOINC Codes
+                      </label>
+                      <span className="text-[10px] text-[#0284C7] font-mono">LOINC v2.74 Ontology</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 min-h-[42px]">
+                      {loincCodes.map((code) => (
+                        <span
+                          key={code}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] border border-[#0284C7]/30"
+                        >
+                          <span>{code}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeLoinc(code)}
+                            className="text-[#0284C7] hover:text-slate-900 dark:hover:text-white cursor-pointer ml-1"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addLoinc}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-mono text-slate-500 hover:text-[#0284C7] border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#0284C7] cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add LOINC 8867-4</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Clinical Impression & Care Directives */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <label className="font-semibold text-slate-700 dark:text-slate-300">
+                        Clinical Impression &amp; Care Directives
+                      </label>
+                      <span className="text-[10px] font-mono text-[#0284C7]">AES-GCM-256 Encrypted</span>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={clinicalNotes}
+                      onChange={(e) => setClinicalNotes(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs leading-relaxed outline-none resize-none shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7]"
+                    />
+                  </div>
+
+                  {/* Clinical Checkboxes */}
+                  <div className="space-y-2 pt-1 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={sigVerified}
+                        onChange={(e) => setSigVerified(e.target.checked)}
+                        className="rounded text-[#0284C7] focus:ring-[#0284C7] w-4 h-4"
+                      />
+                      <span>Digital Signature Verified (Physician Enclave Key)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={requireReconsent}
+                        onChange={(e) => setRequireReconsent(e.target.checked)}
+                        className="rounded text-[#0284C7] focus:ring-[#0284C7] w-4 h-4"
+                      />
+                      <span>Require Sovereign Patient Re-Consent for Inter-Hospital Transfer</span>
+                    </label>
+                  </div>
+
+                  {/* Submit CTA */}
+                  <button
+                    type="submit"
+                    disabled={isSubmittingOrder}
+                    className="w-full py-2.5 px-4 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
+                  >
+                    {isSubmittingOrder ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4" />
+                    )}
+                    <span>Commit Encrypted Record to Blockchain (Sign &amp; Anchor Tx)</span>
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* TAB CONTENT 3: AUDIT TRAIL */}
+            {activeTab === "audit" && (
+              <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+                      Real-Time Cryptographic Access Audit Feed
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Live Sync
+                  </span>
+                </div>
+                <ActivityFeed />
+              </div>
+            )}
+          </main>
         )}
       </div>
     </div>
