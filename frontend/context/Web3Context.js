@@ -21,6 +21,7 @@ const Web3Context = createContext({
   setRole: () => {},
   enterDemoMode: () => {},
   exitDemoMode: () => {},
+  resetDemoSandbox: () => {},
 });
 
 export const SUPPORTED_NETWORKS = {
@@ -30,25 +31,9 @@ export const SUPPORTED_NETWORKS = {
   1: "Ethereum Mainnet",
 };
 
-export const DEMO_PROFILES = {
-  doctor: {
-    address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    name: "Dr. Sarah Chen, MD",
-    roleTitle: "Chief of Clinical Cardiology",
-    organization: "St. Jude Heart Institute",
-    licenseNumber: "MED-90281-NY",
-    department: "Cardiovascular Telemetry & Diagnostics",
-  },
-  patient: {
-    address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    name: "Alex Mercer",
-    roleTitle: "Patient Member",
-    organization: "Metro Health System",
-    mrn: "MRN-9482-A",
-    dob: "August 14, 1972",
-    bloodType: "O-Positive",
-  },
-};
+import { DEMO_PROFILES, resetDemoSandbox } from "../lib/demoEngine";
+
+export { DEMO_PROFILES };
 
 export function Web3Provider({ children }) {
   const [account, setAccount] = useState(null);
@@ -265,6 +250,7 @@ export function Web3Provider({ children }) {
         setRole,
         enterDemoMode,
         exitDemoMode,
+        resetDemoSandbox,
       }}
     >
       {children}

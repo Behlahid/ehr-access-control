@@ -23,7 +23,8 @@ import {
   Moon,
   Search,
   Command,
-  BookOpen
+  BookOpen,
+  RotateCcw
 } from "lucide-react";
 import CommandPalette from "./CommandPalette";
 import JargonTranslatorModal from "./JargonTranslatorModal";
@@ -42,6 +43,7 @@ export default function Navbar() {
     demoUser,
     enterDemoMode,
     exitDemoMode,
+    resetDemoSandbox,
   } = useWeb3();
 
   const [copied, setCopied] = useState(false);
@@ -228,6 +230,17 @@ export default function Navbar() {
                     <Sparkles className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400 shrink-0" />
                     <span className="font-semibold whitespace-nowrap hidden sm:inline">{demoUser?.name || "Clinical Demo"}</span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetDemoSandbox();
+                      window.location.reload();
+                    }}
+                    className="h-9 w-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/10 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer active:scale-95"
+                    title="Reset Demo Sandbox to Default State"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     onClick={exitDemoMode}
                     className="h-9 px-2.5 rounded-xl text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer active:scale-95"

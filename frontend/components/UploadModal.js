@@ -6,6 +6,7 @@ import { getEHRContract } from "../lib/contract";
 import { encryptFile } from "../lib/crypto";
 import { uploadEncryptedBlob } from "../lib/ipfs";
 import { cidToBytes32, parseContractError } from "../lib/utils";
+import { addDemoRecord, DEMO_PROFILES } from "../lib/demoEngine";
 import {
   X,
   UploadCloud,
@@ -133,8 +134,23 @@ export default function UploadModal({ isOpen, onClose, onSuccess }) {
           setTxHash(mockTx);
           setStep("completed");
 
+          addDemoRecord(
+            {
+              ipfsHash: hashBytes32,
+              cid: ipfsRes.cid,
+              owner: account || DEMO_PROFILES.patient.address,
+              timestamp: Math.floor(Date.now() / 1000),
+              flEligible: true,
+              title: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ") || "Uploaded Clinical Observation",
+              category: "Diagnostic Record",
+              hospital: "Sovereign Health Node",
+              key: encryptionResult.key,
+            },
+            encryptionResult.key
+          );
+
           if (onSuccess) {
-            onSuccess(hashBytes32, mockTx, file.name);
+            onSuccess(hashBytes32, mockTx, file.name, encryptionResult.key);
           }
         }, 1000);
         return;

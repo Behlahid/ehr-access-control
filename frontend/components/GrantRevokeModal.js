@@ -5,6 +5,7 @@ import { ethers } from "ethers";
 import { useWeb3 } from "../context/Web3Context";
 import { getEHRContract } from "../lib/contract";
 import { shortenHash, parseContractError } from "../lib/utils";
+import { grantDemoAccess, revokeDemoAccess } from "../lib/demoEngine";
 import { X, UserPlus, UserX, AlertCircle, Loader2, Check, Shield } from "lucide-react";
 
 export default function GrantRevokeModal({
@@ -59,8 +60,13 @@ export default function GrantRevokeModal({
       setLoading(true);
       setTimeout(() => {
         setLoading(false);
+        const durationLabel = durationOptions.find((d) => d.value === duration)?.label || "Indefinite";
+        if (isGrant) {
+          grantDemoAccess(recordHash, cleanAddress, duration, durationLabel);
+        } else {
+          revokeDemoAccess(recordHash, cleanAddress);
+        }
         if (onSuccess) {
-          const durationLabel = durationOptions.find((d) => d.value === duration)?.label || "Indefinite";
           onSuccess(
             isGrant ? "Physician Authorization Granted" : "Physician Authorization Revoked",
             isGrant

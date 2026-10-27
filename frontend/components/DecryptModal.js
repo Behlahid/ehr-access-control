@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
+import { useWeb3 } from "../context/Web3Context";
 import { fetchEncryptedBlob } from "../lib/ipfs";
 import { decryptFile } from "../lib/crypto";
 import { bytes32ToCid, shortenHash } from "../lib/utils";
-import { X, Unlock, Key, FileText, Download, AlertCircle, Loader2, CheckCircle2, Eye, Terminal } from "lucide-react";
+import { getDemoRecordKey, checkDemoAccess, getDemoRecords, DEMO_PROFILES } from "../lib/demoEngine";
+import { X, Unlock, Key, FileText, Download, AlertCircle, Loader2, CheckCircle2, Eye, Terminal, Lock, ShieldCheck } from "lucide-react";
 
 export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose }) {
+  const { isDemoMode, account } = useWeb3();
   const [aesKey, setAesKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [decryptedResult, setDecryptedResult] = useState(null);
@@ -15,6 +18,11 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
   if (!isOpen) return null;
 
   const cid = propCid || bytes32ToCid(recordHash);
+  const demoKey = getDemoRecordKey(recordHash);
+  const currentDoctor = account || DEMO_PROFILES.doctor.address;
+  const accessCheck = isDemoMode
+    ? checkDemoAccess(recordHash, currentDoctor)
+    : { hasAccess: true, isEmergency: false };
 
   const handleDecrypt = async (e) => {
     e.preventDefault();
@@ -35,10 +43,16 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
         encryptedBuffer = await fetchEncryptedBlob(cid);
       } catch (ipfsErr) {
         console.warn("IPFS fetch failed, checking demo payload fallback:", ipfsErr);
-        // Resilient fallback for presentation demo records
-        const simulatedText = `[CLINICAL OBSERVATION REPORT]\nPatient: Alex Mercer (MRN-9482-A)\nPhysician: Dr. Sarah Chen, MD (Cardiology)\nRecord Hash: ${shortenHash(recordHash)}\nIPFS CID: ${cid}\n\nDIAGNOSTIC FINDINGS:\n- Resting Sinus Rhythm: 72 bpm, QTc 410ms.\n- Left Ventricular Ejection Fraction (LVEF): 62% (Normal: 55-70%).\n- Stress Echocardiography: No regional wall motion abnormalities detected.\n- Serum High-Sensitivity Troponin I: < 0.01 ng/mL (Reference: < 0.04 ng/mL).\n\nASSESSMENT & RECOMMENDATION:\nNormal cardiovascular diagnostic assessment. Continue standard outpatient telemetry monitoring.\nElectronically signed & verified via HealthLedger Zero-Knowledge Cryptographic Cipher.`;
+        const demoRecords = getDemoRecords();
+        const matchedRec = demoRecords.find(
+          (r) => r.ipfsHash?.toLowerCase() === (recordHash || "").toLowerCase()
+        );
+        const simulatedText =
+          matchedRec?.payloadPreview ||
+          `[CLINICAL OBSERVATION REPORT]\nPatient: Alex Mercer (MRN-84920-A)\nPhysician: Dr. Sarah Chen, MD (Cardiology)\nRecord Hash: ${shortenHash(recordHash)}\nIPFS CID: ${cid}\n\nDIAGNOSTIC FINDINGS:\n- Resting Sinus Rhythm: 72 bpm, QTc 410ms.\n- Left Ventricular Ejection Fraction (LVEF): 62% (Normal: 55-70%).\n- Stress Echocardiography: No regional wall motion abnormalities detected.\n- Serum High-Sensitivity Troponin I: < 0.01 ng/mL (Reference: < 0.04 ng/mL).\n\nASSESSMENT & RECOMMENDATION:\nNormal cardiovascular diagnostic assessment. Continue standard outpatient telemetry monitoring.\nElectronically signed & verified via HealthLedger Zero-Knowledge Cryptographic Cipher.`;
+
         setDecryptedResult({
-          fileName: "cardiac_stress_report.txt",
+          fileName: `${matchedRec?.category ? matchedRec.category.toLowerCase().replace(/\s+/g, "_") : "diagnostic"}_report.txt`,
           mimeType: "text/plain",
           textContent: simulatedText,
           url: "data:text/plain;charset=utf-8," + encodeURIComponent(simulatedText),
@@ -121,13 +135,28 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Input Patient AES-256 Secret Key (64-Char Hex)
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setAesKey("e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293")}
-                  className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
-                >
-                  Insert Sample Key
-                </button>
+                {isDemoMode && accessCheck.hasAccess ? (
+                  <button
+                    type="button"
+                    onClick={() => setAesKey(demoKey || "e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293")}
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Auto-fill Patient Key (ZK Verified)</span>
+                  </button>
+                ) : isDemoMode && !accessCheck.hasAccess ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/30">
+                    <Lock className="w-3 h-3 text-rose-500" /> Key Withheld (Access Revoked)
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAesKey("e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293")}
+                    className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
+                  >
+                    Insert Sample Key
+                  </button>
+                )}
               </div>
               <textarea
                 rows={3}

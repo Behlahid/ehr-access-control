@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWeb3 } from "../../context/Web3Context";
 import { getEHRContract } from "../../lib/contract";
 import { cidToBytes32, bytes32ToCid, shortenAddress, shortenHash, parseContractError } from "../../lib/utils";
+import { checkDemoAccess, recordDemoBreakGlass, addDemoAuditLog, getDemoRecords, DEMO_PROFILES } from "../../lib/demoEngine";
 import DecryptModal from "../../components/DecryptModal";
 import Notification from "../../components/Notification";
 import CryptographicAuditDrawer from "../../components/CryptographicAuditDrawer";
@@ -160,16 +161,45 @@ export default function DoctorDashboard() {
   const [sigVerified, setSigVerified] = useState(true);
   const [requireReconsent, setRequireReconsent] = useState(true);
 
+  useEffect(() => {
+    if (isDemoMode || (!signer && !provider)) {
+      const accessStatus = checkDemoAccess(
+        PATIENT_ROSTER[0].hash,
+        account || DEMO_PROFILES.doctor.address
+      );
+      setSearchResult((prev) => ({
+        ...prev,
+        hasPermission: accessStatus.hasAccess,
+        isEmergencyOverride: accessStatus.isEmergency,
+        durationLabel: accessStatus.durationLabel,
+      }));
+    }
+  }, [isDemoMode, signer, provider, account]);
+
   // Switch patient from left roster
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
     setInputHash(patient.hash);
+
+    let hasPermission = patient.hasPermission;
+    let isEmergencyOverride = false;
+    let durationLabel = null;
+
+    if (isDemoMode || (!signer && !provider)) {
+      const accessStatus = checkDemoAccess(patient.hash, account || DEMO_PROFILES.doctor.address);
+      hasPermission = accessStatus.hasAccess;
+      isEmergencyOverride = Boolean(accessStatus.isEmergency);
+      durationLabel = accessStatus.durationLabel;
+    }
+
     setSearchResult({
       recordHash: patient.hash,
       cid: patient.cid,
       owner: patient.owner,
       isRegistered: true,
-      hasPermission: patient.hasPermission,
+      hasPermission,
+      isEmergencyOverride,
+      durationLabel,
       title: `${patient.name} Clinical Study`,
       patientName: patient.name,
       department: "Cardiology & Telemetry Core",
@@ -201,13 +231,15 @@ export default function DoctorDashboard() {
       if (isDemoMode || (!signer && !provider)) {
         const cid = matched ? matched.cid : bytes32ToCid(recordBytes32);
         const owner = matched ? matched.owner : "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
-        const hasPermission = matched ? matched.hasPermission : true;
+        const accessStatus = checkDemoAccess(recordBytes32, account || DEMO_PROFILES.doctor.address);
         setSearchResult({
           recordHash: recordBytes32,
           cid,
           owner,
           isRegistered: true,
-          hasPermission,
+          hasPermission: accessStatus.hasAccess,
+          isEmergencyOverride: accessStatus.isEmergency,
+          durationLabel: accessStatus.durationLabel,
           title: matched ? matched.diagnosis : "Cardiovascular Clinical Study",
           patientName: matched ? matched.name : "Alex Mercer",
           department: "St. Jude Heart Institute",
@@ -253,6 +285,14 @@ export default function DoctorDashboard() {
       setIsRequesting(true);
       setTimeout(() => {
         setIsRequesting(false);
+        addDemoAuditLog({
+          type: "AccessRequested",
+          title: "Doctor Access Requested",
+          recordHash: searchResult.recordHash,
+          doctor: account || DEMO_PROFILES.doctor.address,
+          patient: searchResult.owner,
+          details: `Physician consultation request broadcasted for record ${shortenHash(searchResult.recordHash)} to patient ${selectedPatient.name}.`,
+        });
         setNotification({
           type: "success",
           title: "Consultation Request Dispatched",
@@ -301,6 +341,11 @@ export default function DoctorDashboard() {
       setTimeout(() => {
         setIsExecutingBreakGlass(false);
         setIsBreakGlassOpen(false);
+        recordDemoBreakGlass(
+          searchResult.recordHash,
+          account || DEMO_PROFILES.doctor.address,
+          justification
+        );
         setSearchResult((prev) => ({
           ...prev,
           hasPermission: true,
@@ -350,6 +395,14 @@ export default function DoctorDashboard() {
     setIsSubmittingOrder(true);
     setTimeout(() => {
       setIsSubmittingOrder(false);
+      addDemoAuditLog({
+        type: "ConsultationOrderCommitted",
+        title: "Clinical Directive Committed",
+        recordHash: searchResult?.recordHash || "0x82a938f9210c8129841802938120381029381029381029381029381029381029",
+        doctor: account || DEMO_PROFILES.doctor.address,
+        patient: searchResult?.owner || DEMO_PROFILES.patient.address,
+        details: `Consultation note with LOINC directives encrypted with AES-GCM-256 and anchored to Block. EIP-712 Signature verified for Dr. Sarah Chen.`,
+      });
       setNotification({
         type: "success",
         title: "Clinical Directive Committed to Blockchain",
@@ -358,6 +411,35 @@ export default function DoctorDashboard() {
       });
     }, 1200);
   };
+
+  useEffect(() => {
+    const handleSync = () => {
+      if (isDemoMode || (!signer && !provider)) {
+        if (searchResult?.recordHash) {
+          const accessStatus = checkDemoAccess(
+            searchResult.recordHash,
+            account || DEMO_PROFILES.doctor.address
+          );
+          setSearchResult((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  hasPermission: accessStatus.hasAccess,
+                  isEmergencyOverride: accessStatus.isEmergency,
+                  durationLabel: accessStatus.durationLabel,
+                }
+              : prev
+          );
+        }
+      }
+    };
+    window.addEventListener("ehr:permissions-changed", handleSync);
+    window.addEventListener("ehr:reset", handleSync);
+    return () => {
+      window.removeEventListener("ehr:permissions-changed", handleSync);
+      window.removeEventListener("ehr:reset", handleSync);
+    };
+  }, [isDemoMode, signer, provider, account, searchResult?.recordHash]);
 
   const removeLoinc = (code) => {
     setLoincCodes(loincCodes.filter((c) => c !== code));

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useWeb3 } from "../../context/Web3Context";
 import { getEHRContract } from "../../lib/contract";
 import { bytes32ToCid, shortenHash, formatTimestamp, parseContractError } from "../../lib/utils";
+import { getDemoRecords, toggleDemoFL, DEMO_PROFILES } from "../../lib/demoEngine";
 import UploadModal from "../../components/UploadModal";
 import GrantRevokeModal from "../../components/GrantRevokeModal";
 import ActivityFeed from "../../components/ActivityFeed";
@@ -112,24 +113,13 @@ export default function PatientDashboard() {
   // Notification state
   const [notification, setNotification] = useState(null);
 
-  const getStoredDemoRecords = () => {
-    try {
-      const stored = localStorage.getItem("ehr_demo_records");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return DEMO_PATIENT_RECORDS;
-  };
-
   const fetchMyRecords = useCallback(async () => {
     try {
       setLoading(true);
 
       // If not connected to MetaMask, or in Demo Mode, or on unsupported network, immediately load clinical demo records
       if (!account || isDemoMode || !isCorrectNetwork || (!signer && !provider)) {
-        setRecords(getStoredDemoRecords());
+        setRecords(getDemoRecords());
         setLoading(false);
         return;
       }
@@ -150,15 +140,15 @@ export default function PatientDashboard() {
           setRecords(parsed);
         } else {
           // If on-chain has no records yet for this fresh account, show initial records safely
-          setRecords(getStoredDemoRecords());
+          setRecords(getDemoRecords());
         }
       } catch (contractErr) {
         console.warn("Could not query on-chain records, using demo cache:", contractErr);
-        setRecords(getStoredDemoRecords());
+        setRecords(getDemoRecords());
       }
     } catch (err) {
       console.error("Error fetching my records:", err);
-      setRecords(getStoredDemoRecords());
+      setRecords(getDemoRecords());
     } finally {
       setLoading(false);
     }
@@ -168,21 +158,28 @@ export default function PatientDashboard() {
     fetchMyRecords();
   }, [fetchMyRecords, refreshTrigger]);
 
+  useEffect(() => {
+    const handleSync = () => {
+      if (!account || isDemoMode || !isCorrectNetwork || (!signer && !provider)) {
+        setRecords(getDemoRecords());
+      }
+    };
+    window.addEventListener("ehr:records-changed", handleSync);
+    window.addEventListener("ehr:reset", handleSync);
+    return () => {
+      window.removeEventListener("ehr:records-changed", handleSync);
+      window.removeEventListener("ehr:reset", handleSync);
+    };
+  }, [account, isDemoMode, isCorrectNetwork, signer, provider]);
+
   const handleToggleFL = async (recordHash, currentStatus) => {
     const newStatus = !currentStatus;
 
     if (isDemoMode || !signer) {
       setTogglingFlHash(recordHash);
       setTimeout(() => {
-        setRecords((prev) => {
-          const updated = prev.map((r) =>
-            r.ipfsHash === recordHash ? { ...r, flEligible: newStatus } : r
-          );
-          try {
-            localStorage.setItem("ehr_demo_records", JSON.stringify(updated));
-          } catch (e) {}
-          return updated;
-        });
+        const updated = toggleDemoFL(recordHash, newStatus);
+        setRecords(updated);
         setNotification({
           type: "success",
           title: newStatus ? "AI Research Consent Active" : "AI Research Consent Paused",
@@ -190,7 +187,7 @@ export default function PatientDashboard() {
           txHash: "0x892fa...demo99",
         });
         setTogglingFlHash(null);
-      }, 700);
+      }, 500);
       return;
     }
 
@@ -306,20 +303,7 @@ export default function PatientDashboard() {
             txHash: tx,
           });
           if (isDemoMode || !signer) {
-            const newRec = {
-              ipfsHash: hash,
-              owner: account || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-              timestamp: Math.floor(Date.now() / 1000),
-              flEligible: true,
-              cid: bytes32ToCid(hash),
-            };
-            setRecords((prev) => {
-              const updated = [newRec, ...prev];
-              try {
-                localStorage.setItem("ehr_demo_records", JSON.stringify(updated));
-              } catch (e) {}
-              return updated;
-            });
+            setRecords(getDemoRecords());
           }
           setRefreshTrigger((prev) => prev + 1);
         }}

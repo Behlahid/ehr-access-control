@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useWeb3 } from "../context/Web3Context";
 import { getEHRContract } from "../lib/contract";
 import { shortenAddress, shortenHash, formatTimestamp } from "../lib/utils";
+import { getDemoAuditLogs } from "../lib/demoEngine";
 import {
   Activity,
   ShieldAlert,
@@ -73,7 +74,7 @@ export default function ActivityFeed({ refreshTrigger }) {
 
   const fetchEvents = useCallback(async () => {
     if (!account || (!provider && !signer) || isDemoMode || !isCorrectNetwork) {
-      setEvents(SIMULATED_AUDIT_LOGS);
+      setEvents(getDemoAuditLogs());
       setLoading(false);
       return;
     }
@@ -224,6 +225,20 @@ export default function ActivityFeed({ refreshTrigger }) {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents, refreshTrigger]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      if (!account || (!provider && !signer) || isDemoMode || !isCorrectNetwork) {
+        setEvents(getDemoAuditLogs());
+      }
+    };
+    window.addEventListener("ehr:audit-changed", handleSync);
+    window.addEventListener("ehr:reset", handleSync);
+    return () => {
+      window.removeEventListener("ehr:audit-changed", handleSync);
+      window.removeEventListener("ehr:reset", handleSync);
+    };
+  }, [account, provider, signer, isDemoMode, isCorrectNetwork]);
 
   const filteredEvents = events.filter((ev) => {
     if (filterType === "all") return true;
