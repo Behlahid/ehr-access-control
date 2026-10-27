@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useWeb3 } from "../context/Web3Context";
 import { fetchEncryptedBlob } from "../lib/ipfs";
 import { decryptFile } from "../lib/crypto";
@@ -15,14 +15,26 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
   const [decryptedResult, setDecryptedResult] = useState(null);
   const [error, setError] = useState(null);
 
-  if (!isOpen) return null;
-
   const cid = propCid || bytes32ToCid(recordHash);
   const demoKey = getDemoRecordKey(recordHash);
   const currentDoctor = account || DEMO_PROFILES.doctor.address;
   const accessCheck = isDemoMode
     ? checkDemoAccess(recordHash, currentDoctor)
     : { hasAccess: true, isEmergency: false };
+
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+      setDecryptedResult(null);
+      if (isDemoMode && accessCheck.hasAccess) {
+        setAesKey(demoKey || "e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293");
+      } else if (isDemoMode && !accessCheck.hasAccess) {
+        setAesKey("");
+      }
+    }
+  }, [isOpen, isDemoMode, accessCheck.hasAccess, demoKey]);
+
+  if (!isOpen) return null;
 
   const handleDecrypt = async (e) => {
     e.preventDefault();

@@ -24,10 +24,10 @@ export default function GrantRevokeModal({
 
   React.useEffect(() => {
     if (isOpen) {
-      setDoctorAddress(initialDoctorAddress || "");
+      setDoctorAddress(initialDoctorAddress || (isDemoMode ? "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" : ""));
       setError(null);
     }
-  }, [isOpen, initialDoctorAddress]);
+  }, [isOpen, initialDoctorAddress, isDemoMode]);
 
   if (!isOpen) return null;
 
@@ -173,16 +173,30 @@ export default function GrantRevokeModal({
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-mono placeholder:text-slate-400 outline-none shadow-2xs"
               required
             />
-            {/* Quick demo doctor button */}
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span>{isGrant ? "Grants cryptographic consultation rights." : "Revokes cryptographic viewing rights."}</span>
-              <button
-                type="button"
-                onClick={() => setDoctorAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")}
-                className="text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
-              >
-                Use Dr. Sarah Chen
-              </button>
+            {/* Quick Care Team Clinician Selector Chips */}
+            <div className="pt-1.5 space-y-1.5">
+              <span className="text-[11px] font-mono text-slate-500 block">Select Attested Care Team Physician:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                {[
+                  { name: "Dr. Sarah Chen, MD", specialty: "Cardiology", address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" },
+                  { name: "Dr. Marcus Vance, MD", specialty: "Neurology", address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906" },
+                  { name: "Dr. Elena Rostova, MD", specialty: "Oncology", address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" },
+                ].map((doc) => (
+                  <button
+                    key={doc.address}
+                    type="button"
+                    onClick={() => setDoctorAddress(doc.address)}
+                    className={`p-2 rounded-xl text-left border transition-all text-[11px] cursor-pointer ${
+                      doctorAddress.toLowerCase() === doc.address.toLowerCase()
+                        ? "bg-cyan-50 dark:bg-cyan-500/15 border-cyan-400 dark:border-cyan-500/40 text-cyan-900 dark:text-cyan-300 font-semibold shadow-xs"
+                        : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="font-bold truncate text-[11px]">{doc.name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono truncate">{doc.specialty}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

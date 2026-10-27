@@ -62,6 +62,38 @@ export default function UploadModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
+  const handleLoadSampleFile = () => {
+    const sampleClinicalText = `[CLINICAL OBSERVATION & TELEMETRY REPORT - ST. JUDE MEDICAL ENCLAVE]
+PATIENT: Alex Mercer | MRN: 84920-A | AGE: 42 | GENDER: Male | BLOOD: O+
+ADMISSION DIAGNOSIS: Post-PCI Surveillance / Non-ST Elevation Coronary Ischemia
+ATTESTATION: Cryptographically verified via HealthLedger SGX Enclave v2.4
+
+VITAL SIGNS & CARDIOVASCULAR TELEMETRY:
+- Heart Rate (ECG Lead II): 72 bpm (Normal Sinus Rhythm)
+- Blood Pressure: 118/78 mmHg (Right Arm, Sitting)
+- Pulse Oximetry (SpO2): 99% on Ambient Room Air
+- Left Ventricular Ejection Fraction (LVEF): 62%
+- Serum High-Sensitivity Cardiac Troponin I (hs-cTnI): < 0.01 ng/mL (Ref: < 0.04 ng/mL)
+- Fasting Serum Glucose: 92 mg/dL
+
+CLINICAL IMPRESSION & RECOMMENDATIONS:
+1. Hemodynamic stability confirmed. No inducible ST-segment depression during ambulation.
+2. Maintain secondary prevention pharmacological regimen: Atorvastatin 20mg daily, Aspirin 81mg.
+3. Federated Learning consent status: OPTED-IN for privacy-preserving cardiovascular risk modeling.
+
+AUTHORIZING CARDIOLOGIST:
+Dr. Sarah Chen, MD, FACC (License #CA-8849201)
+Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)`;
+
+    const sampleBlob = new Blob([sampleClinicalText], { type: "text/plain" });
+    const sampleFile = new File([sampleBlob], "Alex_Mercer_Telemetry_ECG_2026.txt", {
+      type: "text/plain",
+      lastModified: Date.now(),
+    });
+    setFile(sampleFile);
+    setError(null);
+  };
+
   const handleEncryptAndProceed = async () => {
     if (!file) return;
 
@@ -264,6 +296,16 @@ export default function UploadModal({ isOpen, onClose, onSuccess }) {
                   </p>
                 </div>
               </div>
+
+              {/* 1-Click Sample File Loader for Demo */}
+              <button
+                type="button"
+                onClick={handleLoadSampleFile}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:scale-[1.01] active:scale-95"
+              >
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span>Load Sample Clinical Telemetry Report (1-Click Demo)</span>
+              </button>
 
               <button
                 onClick={handleEncryptAndProceed}

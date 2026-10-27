@@ -171,6 +171,14 @@ export default function DoctorDashboard() {
   const prevDemoRef = React.useRef(isDemoMode);
 
   useEffect(() => {
+    if (isBreakGlassOpen && !breakGlassJustification.trim()) {
+      setBreakGlassJustification(
+        "Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required."
+      );
+    }
+  }, [isBreakGlassOpen, breakGlassJustification]);
+
+  useEffect(() => {
     if (isDemoMode) {
       if (!selectedPatient) {
         setSelectedPatient(PATIENT_ROSTER[0]);
@@ -681,15 +689,37 @@ export default function DoctorDashboard() {
                   onChange={(e) => setBreakGlassJustification(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 transition-all resize-none outline-none shadow-2xs"
                 />
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Minimum 10 characters required</span>
-                  <button
-                    type="button"
-                    onClick={() => setBreakGlassJustification("Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.")}
-                    className="text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
-                  >
-                    Insert Standard Trauma Reason
-                  </button>
+                <div className="pt-1.5 space-y-1.5">
+                  <span className="text-[11px] font-mono text-slate-500 block">Preset Emergency Scenarios (1-Click Fill):</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                    {[
+                      {
+                        label: "🚑 Trauma & Shock",
+                        text: "Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.",
+                      },
+                      {
+                        label: "❤️ STEMI / Cath Lab",
+                        text: "Acute ST-Elevation Myocardial Infarction in Cath Lab; urgent coronary angiography and anticoagulant history review required.",
+                      },
+                      {
+                        label: "🧠 Stroke / Neuro",
+                        text: "Acute ischemic stroke onset < 3 hours; emergency thrombolytic contraindication screen and intracranial scan review required.",
+                      },
+                    ].map((scenario) => (
+                      <button
+                        key={scenario.label}
+                        type="button"
+                        onClick={() => setBreakGlassJustification(scenario.text)}
+                        className={`p-2 rounded-xl text-left border text-[11px] transition-all cursor-pointer ${
+                          breakGlassJustification === scenario.text
+                            ? "bg-rose-50 dark:bg-rose-500/15 border-rose-300 dark:border-rose-500/40 text-rose-900 dark:text-rose-300 font-semibold shadow-xs"
+                            : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="font-bold truncate">{scenario.label}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -892,6 +922,30 @@ export default function DoctorDashboard() {
                         ✕
                       </button>
                     )}
+                  </div>
+
+                  {/* 1-Click Test Record Presets */}
+                  <div className="pt-2 space-y-1.5">
+                    <span className="text-[10px] font-mono text-slate-500 block">Sample Multihashes for Verification:</span>
+                    <div className="flex flex-col gap-1.5">
+                      {[
+                        { label: "Alex Mercer (Post-PCI)", hash: "0x82a938f9210c8129841802938120381029381029381029381029381029381029" },
+                        { label: "Elena Rostova (ACS)", hash: "0x1111111111111111111111111111111111111111111111111111111111111111" },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => {
+                            setInputHash(item.hash);
+                            handleCheckAccess(null, item.hash);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg text-left border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-cyan-500/40 text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-between cursor-pointer"
+                        >
+                          <span className="font-semibold truncate">{item.label}</span>
+                          <span className="font-mono text-[10px] text-cyan-600 dark:text-cyan-400">1-Click Verify</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
