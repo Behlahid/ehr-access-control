@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Web3Provider } from "../context/Web3Context";
 import Navbar from "../components/Navbar";
+import Logo from "../components/Logo";
 
 export const metadata = {
   title: "HealthLedger | Sovereign EHR Access Control & Clinical FL",
@@ -27,13 +28,15 @@ export default function RootLayout({ children }) {
           {/* Enterprise Status Footer */}
           <footer className="relative z-10 border-t border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-obsidian-950/90 backdrop-blur-md py-6 text-xs text-slate-500 dark:text-slate-400 transition-colors">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Logo size={22} showText={true} />
+                <span className="hidden md:inline text-slate-300 dark:text-slate-700">|</span>
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 <span className="text-[11px] text-slate-600 dark:text-slate-400">
-                  Clinical Security: <strong className="text-slate-900 dark:text-slate-200">Zero-Knowledge AES-GCM-256</strong> • <strong className="text-slate-900 dark:text-slate-200">Decentralized IPFS Multihash</strong> • <strong className="text-slate-900 dark:text-slate-200">Ethereum Smart Contract</strong>
+                  Clinical Security: <strong className="text-slate-900 dark:text-slate-200">AES-GCM-256</strong> • <strong className="text-slate-900 dark:text-slate-200">IPFS Multihash</strong> • <strong className="text-slate-900 dark:text-slate-200">Ethereum Smart Contract</strong>
                 </span>
               </div>
 
