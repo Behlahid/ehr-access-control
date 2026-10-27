@@ -111,7 +111,7 @@ export default function Navbar() {
           {/* Brand Logo & Search */}
           <div className="flex items-center gap-4 shrink-0">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform shrink-0">
                 <Shield className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col">
@@ -120,7 +120,10 @@ export default function Navbar() {
                     HealthLedger
                   </span>
                   <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 whitespace-nowrap">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
                     Zero-Knowledge Enclave Active
                   </span>
                 </div>
@@ -133,7 +136,7 @@ export default function Navbar() {
             {/* Quick OmniSearch Bar (Stitch blueprint) */}
             <div
               onClick={() => setIsCommandOpen(true)}
-              className="hidden lg:flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors w-60 shadow-2xs"
+              className="hidden lg:flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:border-cyan-500/40 cursor-pointer transition-all w-60 shadow-2xs hover:scale-[1.01]"
             >
               <Search className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-xs truncate">Search LOINC, CIDs, Patients...</span>
@@ -148,7 +151,7 @@ export default function Navbar() {
             <button
               id="nav-patient-tab"
               onClick={() => handleSwitchRole("patient")}
-              className={`flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer ${
                 pathname.startsWith("/patient")
                   ? "bg-white dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-slate-200 dark:border-cyan-500/40 shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent"
@@ -162,7 +165,7 @@ export default function Navbar() {
             <button
               id="nav-doctor-tab"
               onClick={() => handleSwitchRole("doctor")}
-              className={`flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer ${
                 pathname.startsWith("/doctor")
                   ? "bg-white dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-slate-200 dark:border-indigo-500/40 shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent"
@@ -181,10 +184,10 @@ export default function Navbar() {
               id="jargon-matrix-btn"
               type="button"
               onClick={() => setIsJargonOpen(true)}
-              className="h-9 hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs cursor-pointer"
+              className="btn-premium group h-9 hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs shadow-xs cursor-pointer active:scale-95"
               title="Patient Plain-Language Guide / Jargon Matrix (⌘J or Ctrl+J)"
             >
-              <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+              <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 transition-transform group-hover:scale-110" />
               <span className="hidden md:inline whitespace-nowrap">Plain-Language</span>
               <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 ⌘J
@@ -196,7 +199,7 @@ export default function Navbar() {
               id="command-palette-mobile-btn"
               type="button"
               onClick={() => setIsCommandOpen(true)}
-              className="lg:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs"
+              className="lg:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs active:scale-95"
               title="Search (⌘K)"
             >
               <Search className="w-4 h-4" />
@@ -207,13 +210,13 @@ export default function Navbar() {
               id="theme-toggle-btn"
               type="button"
               onClick={toggleTheme}
-              className="h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-sm"
+              className="h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-sm active:scale-90 hover:scale-105"
               title={theme === "light" ? "Switch to Physician Dark Mode" : "Switch to Clean Clinical Light Mode (Apple Health)"}
             >
               {theme === "light" ? (
-                <Moon className="w-4 h-4 text-slate-600" />
+                <Moon className="w-4 h-4 text-slate-600 transition-transform hover:-rotate-12" />
               ) : (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4 text-amber-400 transition-transform hover:rotate-45" />
               )}
             </button>
 
@@ -225,7 +228,7 @@ export default function Navbar() {
                 </div>
                 <button
                   onClick={exitDemoMode}
-                  className="h-9 px-2.5 rounded-xl text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer"
+                  className="h-9 px-2.5 rounded-xl text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer active:scale-95"
                   title="Exit Demo Sandbox"
                 >
                   Exit
@@ -236,7 +239,7 @@ export default function Navbar() {
                 {/* Network Pill */}
                 <div
                   onClick={() => !isCorrectNetwork && switchNetwork(11155111)}
-                  className={`h-9 hidden sm:flex items-center gap-2 px-3 rounded-xl text-xs font-mono font-medium border cursor-pointer transition-all ${
+                  className={`h-9 hidden sm:flex items-center gap-2 px-3 rounded-xl text-xs font-mono font-medium border cursor-pointer transition-all active:scale-95 ${
                     isCorrectNetwork
                       ? "bg-slate-100 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300"
                       : "bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-300"
@@ -259,7 +262,7 @@ export default function Navbar() {
                   </span>
                   <button
                     onClick={handleCopy}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors"
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors active:scale-90"
                     title="Copy Wallet Address"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -272,7 +275,7 @@ export default function Navbar() {
                     disconnect();
                     router.push("/");
                   }}
-                  className="h-9 w-9 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent hover:border-rose-300 dark:hover:border-rose-500/30 rounded-xl transition-all"
+                  className="h-9 w-9 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent hover:border-rose-300 dark:hover:border-rose-500/30 rounded-xl transition-all active:scale-95"
                   title="Disconnect Wallet"
                 >
                   <LogOut className="w-4 h-4" />
@@ -282,18 +285,18 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => enterDemoMode(pathname.startsWith("/doctor") ? "doctor" : "patient")}
-                  className="h-9 hidden sm:flex items-center gap-1.5 px-3 rounded-xl bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-xs font-semibold transition-all shadow-sm cursor-pointer"
+                  className="btn-premium group h-9 hidden sm:flex items-center gap-1.5 px-3 rounded-xl bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-xs font-semibold transition-all shadow-sm cursor-pointer active:scale-95"
                   title="Explore simulated records without MetaMask"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 transition-transform group-hover:scale-110" />
                   <span>Explore Demo</span>
                 </button>
 
                 <button
                   onClick={connectWallet}
-                  className="h-9 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs tracking-tight shadow-md shadow-cyan-600/20 transition-all active:scale-[0.98] cursor-pointer"
+                  className="btn-premium group h-9 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs tracking-tight shadow-md shadow-cyan-600/20 transition-all active:scale-95 cursor-pointer"
                 >
-                  <Shield className="w-4 h-4 shrink-0" />
+                  <Shield className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
                   <span className="hidden sm:inline">Connect Wallet</span>
                   <span className="sm:hidden">Connect</span>
                 </button>

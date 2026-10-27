@@ -102,10 +102,13 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="space-y-16 py-4">
+    <div className="space-y-16 py-4 relative">
+      {/* Ambient Aurora Drift Glow behind Hero */}
+      <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[720px] h-[360px] bg-gradient-to-r from-cyan-500/15 via-sky-500/10 to-indigo-500/15 blur-3xl rounded-full animate-aurora -z-10" />
+
       {/* 1. HERO SECTION (Stitch Clinical Precision Design) */}
       <section className="relative pt-6 pb-2 text-center max-w-4xl mx-auto space-y-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs animate-float">
           <Lock className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
           <span className="text-[11px] font-mono uppercase tracking-widest text-slate-700 dark:text-slate-300 font-semibold">
             Enterprise Zero-Knowledge EMR Architecture
@@ -127,43 +130,43 @@ export default function LandingPage() {
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
           <button
             onClick={() => handleDemoLaunch("patient")}
-            className="flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-md shadow-cyan-600/20 transition-all active:scale-[0.98] w-full sm:w-auto cursor-pointer"
+            className="btn-premium group flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-md shadow-cyan-600/20 transition-all active:scale-[0.98] w-full sm:w-auto cursor-pointer"
           >
-            <User className="w-4 h-4" />
+            <User className="w-4 h-4 transition-transform group-hover:scale-110" />
             <span>Enter Patient Executive Portal</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
 
           <button
             onClick={() => handleDemoLaunch("doctor")}
-            className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold text-sm border border-slate-200 dark:border-slate-800 transition-all active:scale-[0.98] w-full sm:w-auto cursor-pointer shadow-2xs"
+            className="btn-premium group flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold text-sm border border-slate-200 dark:border-slate-800 transition-all active:scale-[0.98] w-full sm:w-auto cursor-pointer shadow-2xs"
           >
-            <Stethoscope className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <Stethoscope className="w-4 h-4 text-cyan-600 dark:text-cyan-400 transition-transform group-hover:scale-110" />
             <span>Launch Physician Diagnostic Terminal</span>
           </button>
         </div>
 
         {/* Real-Time Network Trust Telemetry Array (4 Cards - Stitch Blueprint) */}
         <div className="pt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 text-left">
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+          <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs animate-fade-in-up delay-75">
             <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Cryptographic Enclaves</span>
             <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">14 Active SGX Nodes</div>
             <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">Latency: 18ms • Sync 100%</div>
           </div>
 
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+          <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs animate-fade-in-up delay-150">
             <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">On-Chain Verified Records</span>
             <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">1,429 Attested</div>
             <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">+12 past hour • Block #19,842,910</div>
           </div>
 
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+          <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs animate-fade-in-up delay-200">
             <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Storage Integrity</span>
             <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">0% Plaintext Leakage</div>
             <div className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono">100% Client WebCrypto Encrypted</div>
           </div>
 
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+          <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs animate-fade-in-up delay-300">
             <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">SSTORE Gas Optimization</span>
             <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">45% Slot Savings</div>
             <div className="text-[11px] text-purple-600 dark:text-purple-400 font-mono">2-Slot Packed bytes32 Struct</div>
@@ -194,12 +197,13 @@ export default function LandingPage() {
             return (
               <div
                 key={item.step}
-                className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm space-y-4"
+                style={{ animationDelay: `${idx * 100}ms` }}
+                className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm space-y-4 animate-fade-in-up"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-slate-400">STEP {item.step}</span>
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
                       <Icon className="w-4 h-4" />
                     </div>
                   </div>
@@ -245,7 +249,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Persona Card 1: Patient Executive Portal */}
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 flex flex-col justify-between">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
@@ -263,7 +267,10 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
                   Active Vault
                 </span>
               </div>
@@ -302,15 +309,15 @@ export default function LandingPage() {
 
             <button
               onClick={() => handleDemoLaunch("patient")}
-              className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="btn-premium group w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Open Patient Portal View</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </button>
           </div>
 
           {/* Persona Card 2: Physician Diagnostic Terminal */}
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 flex flex-col justify-between">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
@@ -367,10 +374,10 @@ export default function LandingPage() {
 
             <button
               onClick={() => handleDemoLaunch("doctor")}
-              className="w-full py-3 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+              className="btn-premium group w-full py-3 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <span>Open Physician Terminal View</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </button>
           </div>
         </div>
@@ -390,16 +397,19 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-slate-500">EVM Contract: 0x93C...1B8e</span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
               Live Stream
             </span>
           </div>
         </div>
 
         <div className="space-y-2.5 font-mono text-xs">
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:translate-x-1.5 transition-all duration-200 cursor-pointer">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-bold text-slate-800 dark:text-slate-200">FHIR Resource: Observation/ECG-Lead-II</span>
               <span className="text-[10px] text-slate-500">LOINC 8601-5 • Sinus Rhythm 72 bpm</span>
             </div>
@@ -411,9 +421,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:translate-x-1.5 transition-all duration-200 cursor-pointer">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-bold text-slate-800 dark:text-slate-200">FHIR Resource: DiagnosticReport/Serum-Electrolytes</span>
               <span className="text-[10px] text-slate-500">LOINC 24326-1 • Potassium 4.1 mmol/L</span>
             </div>
@@ -425,9 +435,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:translate-x-1.5 transition-all duration-200 cursor-pointer">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-500" />
+              <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
               <span className="font-bold text-slate-800 dark:text-slate-200">FHIR Resource: Observation/BloodPressure-Ambulatory</span>
               <span className="text-[10px] text-slate-500">LOINC 85354-9 • 118/78 mmHg</span>
             </div>
@@ -443,31 +453,31 @@ export default function LandingPage() {
 
       {/* 5. CLINICAL COMPLIANCE & CRYPTOGRAPHIC TRUST BADGES (Stitch Blueprint) */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-center">
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+        <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs hover:-translate-y-1 transition-all">
           <Shield className="w-5 h-5 mx-auto text-cyan-600 dark:text-cyan-400" />
           <div className="text-xs font-bold text-slate-900 dark:text-white">HIPAA Safe Harbor</div>
           <div className="text-[10px] text-slate-500">Certified §164.514(b)</div>
         </div>
 
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+        <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs hover:-translate-y-1 transition-all">
           <Lock className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
           <div className="text-xs font-bold text-slate-900 dark:text-white">GDPR Art. 9</div>
           <div className="text-[10px] text-slate-500">Special Category Health Data</div>
         </div>
 
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+        <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs hover:-translate-y-1 transition-all">
           <Database className="w-5 h-5 mx-auto text-purple-600 dark:text-purple-400" />
           <div className="text-xs font-bold text-slate-900 dark:text-white">HL7 FHIR v4.0.1</div>
           <div className="text-[10px] text-slate-500">Interoperability Canonical</div>
         </div>
 
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+        <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs hover:-translate-y-1 transition-all">
           <Key className="w-5 h-5 mx-auto text-indigo-600 dark:text-indigo-400" />
           <div className="text-xs font-bold text-slate-900 dark:text-white">W3C DID v1.0</div>
           <div className="text-[10px] text-slate-500">Decentralized Identifiers</div>
         </div>
 
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs col-span-2 sm:col-span-1">
+        <div className="surface-card card-premium shimmer-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs col-span-2 sm:col-span-1 hover:-translate-y-1 transition-all">
           <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
           <div className="text-xs font-bold text-slate-900 dark:text-white">OpenZeppelin v5.0</div>
           <div className="text-[10px] text-slate-500">Audited Smart Contracts</div>

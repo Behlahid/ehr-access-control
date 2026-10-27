@@ -480,7 +480,7 @@ export default function DoctorDashboard() {
       )}
 
       {/* TOP CLINICIAN APP BAR (Stitch Clinical Blueprint) */}
-      <section className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <section className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-full bg-cyan-100 dark:bg-cyan-950/60 ring-2 ring-cyan-500/30 flex items-center justify-center font-bold text-cyan-800 dark:text-cyan-300 font-mono text-sm shrink-0">
             SC
@@ -518,19 +518,19 @@ export default function DoctorDashboard() {
               setBreakGlassJustification("Unconscious trauma admission with acute hypovolemic shock; urgent blood panel and allergy review required.");
               setIsBreakGlassOpen(true);
             }}
-            className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer"
+            className="btn-premium group flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer animate-subtle-pulse"
             title="Emergency Trauma Override (24-Hour Forensic Window)"
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 transition-transform group-hover:scale-110" />
             <span className="whitespace-nowrap">Break-Glass Protocol</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsJargonModalOpen(true)}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs"
+            className="btn-premium group flex items-center gap-1.5 h-9 px-3 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs"
           >
-            <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+            <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 transition-transform group-hover:scale-110" />
             <span>Guide</span>
           </button>
         </div>
@@ -561,10 +561,10 @@ export default function DoctorDashboard() {
                   <div
                     key={patient.id}
                     onClick={() => handleSelectPatient(patient)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`p-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                       isSelected
-                        ? "bg-cyan-50/70 dark:bg-cyan-500/10 border-cyan-500 dark:border-cyan-400 shadow-sm ring-1 ring-cyan-500/20"
-                        : "surface-card hover:bg-slate-50 dark:hover:bg-slate-800/40 border-slate-200 dark:border-slate-800"
+                        ? "bg-cyan-50/80 dark:bg-cyan-500/10 border-cyan-500 dark:border-cyan-400 shadow-sm ring-1 ring-cyan-500/30 translate-x-1"
+                        : "surface-card card-premium hover:translate-x-1 hover:bg-slate-50 dark:hover:bg-slate-800/40 border-slate-200 dark:border-slate-800"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -606,7 +606,10 @@ export default function DoctorDashboard() {
             {/* Sidebar Footer Node Telemetry */}
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 flex items-center justify-between font-mono">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
                 SGX Enclave Node #4
               </span>
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100.0% Attested</span>
@@ -614,10 +617,10 @@ export default function DoctorDashboard() {
           </div>
         </aside>
 
-        {/* MAIN TERMINAL WORKSPACE (8 Cols) */}
-        <main className="lg:col-span-8 flex flex-col gap-6">
+        {/* MAIN TERMINAL WORKSPACE (8 Cols) - Silky Linear/Apple Fade-In-Scale on Patient Selection */}
+        <main key={selectedPatient.id} className="lg:col-span-8 flex flex-col gap-6 animate-fade-in-scale">
           {/* PATIENT QUICK-CHART HEADER & LIVE TELEMETRY (Stitch Blueprint) */}
-          <section className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <section className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center font-bold text-base font-mono shadow-sm">
@@ -653,9 +656,9 @@ export default function DoctorDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsDecryptOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  className="btn-premium group px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Unlock className="w-3.5 h-3.5" />
+                  <Unlock className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
                   <span>Decrypt Record</span>
                 </button>
               </div>
@@ -663,7 +666,7 @@ export default function DoctorDashboard() {
 
             {/* 4 Telemetry Metric Tiles */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+              <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
                 <span className="text-[10px] font-mono text-slate-500">ARTERIAL PRESSURE</span>
                 <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
                   {selectedPatient.vitals.bp} <span className="text-xs font-normal text-slate-500">mmHg</span>
@@ -671,15 +674,18 @@ export default function DoctorDashboard() {
                 <div className="text-[10px] text-emerald-600 font-semibold">● Optimal Normotensive</div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <span className="text-[10px] font-mono text-slate-500">HEART RATE (ECG)</span>
+              <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-slate-500">HEART RATE (ECG)</span>
+                  <Heart className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
+                </div>
                 <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
                   {selectedPatient.vitals.hr} <span className="text-xs font-normal text-slate-500">bpm</span>
                 </div>
                 <div className="text-[10px] text-emerald-600 font-semibold">● Sinus Rhythm Regular</div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+              <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
                 <span className="text-[10px] font-mono text-slate-500">FASTING GLUCOSE</span>
                 <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
                   {selectedPatient.vitals.glucose} <span className="text-xs font-normal text-slate-500">mg/dL</span>
@@ -687,7 +693,7 @@ export default function DoctorDashboard() {
                 <div className="text-[10px] text-emerald-600 font-semibold">● Euglycemic Index</div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
+              <div className="surface-card card-premium shimmer-card p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs hover:-translate-y-0.5 transition-all">
                 <span className="text-[10px] font-mono text-slate-500">OXYGEN SATURATION</span>
                 <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
                   {selectedPatient.vitals.spo2}% <span className="text-xs font-normal text-slate-500">SpO2</span>
@@ -700,7 +706,7 @@ export default function DoctorDashboard() {
           {/* TWO-COLUMN DIAGNOSTIC & ORDER SUITE */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* PANEL A: Decentralized Enclave Ingestion & Attestation Engine */}
-            <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -734,9 +740,9 @@ export default function DoctorDashboard() {
               <button
                 type="button"
                 onClick={() => setIsDecryptOpen(true)}
-                className="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="btn-premium group w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Unlock className="w-4 h-4" />
+                <Unlock className="w-4 h-4 transition-transform group-hover:scale-110" />
                 <span>Authorize &amp; Decrypt Enclave Record (EIP-712)</span>
               </button>
 
@@ -768,7 +774,7 @@ export default function DoctorDashboard() {
             </div>
 
             {/* PANEL B: Consultation Order & Note Entry Form */}
-            <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <Stethoscope className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -859,9 +865,9 @@ export default function DoctorDashboard() {
                 <button
                   type="submit"
                   disabled={isSubmittingOrder}
-                  className="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-premium group w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {isSubmittingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  {isSubmittingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4 transition-transform group-hover:scale-110" />}
                   <span>Commit Encrypted Record to Blockchain (Sign &amp; Anchor Tx)</span>
                 </button>
               </form>
@@ -869,7 +875,7 @@ export default function DoctorDashboard() {
           </div>
 
           {/* REAL-TIME CRYPTOGRAPHIC ACCESS AUDIT FEED */}
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -878,7 +884,10 @@ export default function DoctorDashboard() {
                 </h3>
               </div>
               <span className="text-xs font-mono text-emerald-600 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
                 Zero-Knowledge Rollup Sync: Live
               </span>
             </div>

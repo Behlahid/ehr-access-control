@@ -349,7 +349,7 @@ export default function PatientDashboard() {
       />
 
       {/* PATIENT IDENTITY BANNER & SOVEREIGN ENCLAVE ATTESTATION (Stitch Blueprint) */}
-      <section className="surface-card rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+      <section className="surface-card card-premium shimmer-card rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
@@ -359,7 +359,10 @@ export default function PatientDashboard() {
               {isSimulated || isDemoMode ? "MRN-9482-A • Metro Health System" : shortenAddress(account)}
             </span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-500/30">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
               <span>Sovereign Verified</span>
             </span>
           </div>
@@ -386,25 +389,25 @@ export default function PatientDashboard() {
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold h-10 px-4 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+            className="btn-premium group bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold h-10 px-4 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
             <span>Add New Medical Record</span>
           </button>
           <button
             type="button"
             onClick={() => setIsJargonModalOpen(true)}
-            className="surface-card hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold h-10 px-3.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+            className="btn-premium group surface-card hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold h-10 px-3.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400 transition-transform group-hover:scale-110" />
             <span>Plain-Language Guide</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("careteam")}
-            className="surface-card hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold h-10 px-3.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="btn-premium group surface-card hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold h-10 px-3.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Stethoscope className="w-4 h-4 text-slate-400" />
+            <Stethoscope className="w-4 h-4 text-slate-400 transition-transform group-hover:rotate-12" />
             <span>Care Team Roster</span>
           </button>
         </div>
@@ -417,8 +420,11 @@ export default function PatientDashboard() {
             <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
             <h2 className="text-base font-bold text-slate-900 dark:text-white">Executive Vitals &amp; Telemetry</h2>
           </div>
-          <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5 shadow-2xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
             Live BLE Telemetry
           </span>
         </div>
@@ -426,10 +432,10 @@ export default function PatientDashboard() {
         {/* 4 Vitals Bento Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Resting Heart Rate */}
-          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-75">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Resting Heart Rate</span>
-              <Heart className="w-4 h-4 text-rose-500" />
+              <Heart className="w-4 h-4 text-rose-500 animate-heartbeat" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">72</span>
@@ -455,6 +461,7 @@ export default function PatientDashboard() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
+                  className="animate-pulse-path"
                 />
               </svg>
             </div>
@@ -468,7 +475,7 @@ export default function PatientDashboard() {
           </div>
 
           {/* Card 2: Blood Pressure */}
-          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-150">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Pressure</span>
               <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -484,7 +491,7 @@ export default function PatientDashboard() {
                 <span>Diastolic 78</span>
               </div>
               <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
-                <div className="w-3/5 bg-cyan-600 dark:bg-cyan-500 rounded-full" />
+                <div className="w-3/5 bg-cyan-600 dark:bg-cyan-500 rounded-full transition-all duration-700 ease-out" />
                 <div className="w-2/5 bg-slate-200 dark:bg-slate-700" />
               </div>
             </div>
@@ -498,7 +505,7 @@ export default function PatientDashboard() {
           </div>
 
           {/* Card 3: Fasting Blood Glucose */}
-          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-200">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Fasting Blood Glucose</span>
               <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -526,6 +533,7 @@ export default function PatientDashboard() {
                   stroke="currentColor"
                   strokeLinecap="round"
                   strokeWidth="2"
+                  className="animate-pulse-path"
                 />
               </svg>
             </div>
@@ -539,7 +547,7 @@ export default function PatientDashboard() {
           </div>
 
           {/* Card 4: Blood Oxygen */}
-          <div className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm">
+          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Oxygen</span>
               <Cpu className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -567,6 +575,7 @@ export default function PatientDashboard() {
                   stroke="currentColor"
                   strokeLinecap="round"
                   strokeWidth="1.8"
+                  className="animate-pulse-path"
                 />
               </svg>
             </div>

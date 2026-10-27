@@ -157,7 +157,198 @@ body {
   color: #f8fafc;
 }
 
-/* Keyframe animations */
+/* ==========================================================================
+   PREMIUM CLINICAL MOTION & ANIMATION SYSTEM (Linear / Apple Health aesthetic)
+   ========================================================================== */
+
+/* 1. Heartbeat dual contraction (72 bpm baseline) */
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.18); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.12); }
+  70% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* 2. Expanding radar / beacon rings for live telemetry */
+@keyframes radarPing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  70%, 100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.animate-radar {
+  animation: radarPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 3. Floating ambient badges / shields */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+/* 4. Shimmer sweep across cards and buttons */
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+}
+
+.shimmer-card:hover::after {
+  animation: shimmerSweep 1.2s ease-in-out forwards;
+}
+
+/* 5. Smooth Staggered Entrance Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger delay helpers */
+.delay-75 { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+
+/* 6. Glowing border breathing animation */
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(6, 182, 212, 0.25);
+    box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.08);
+  }
+  50% {
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 0 0 25px 0 rgba(6, 182, 212, 0.22);
+  }
+}
+
+.animate-border-glow {
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+/* 7. Ambient Background Aurora Glow */
+@keyframes auroraDrift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(30px, -20px) scale(1.12);
+    opacity: 0.8;
+  }
+}
+
+.animate-aurora {
+  animation: auroraDrift 10s ease-in-out infinite alternate;
+}
+
+/* 8. Premium Button Shimmer & Micro-Interactions */
+.btn-premium {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-premium:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 24px -4px rgba(8, 145, 178, 0.35);
+}
+
+.btn-premium:active {
+  transform: translateY(0.5px) scale(0.98);
+}
+
+/* 9. Card Premium Elevation with Smooth Tilt / Lift */
+.card-premium {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-premium:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+}
+
+.dark .card-premium:hover {
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.7), 0 0 20px -2px rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+/* 10. Sparkline animated pulse stroke */
+@keyframes pulsePath {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); }
+}
+
+.animate-pulse-path {
+  animation: pulsePath 3s ease-in-out infinite;
+}
+
+/* 11. Subtle keyframe pulse */
 @keyframes subtlePulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
