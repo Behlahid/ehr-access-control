@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Database,
   Layers,
-  Cpu
+  Cpu,
+  Sparkles
 } from "lucide-react";
 
 export default function UploadModal({ isOpen, onClose, onSuccess }) {
