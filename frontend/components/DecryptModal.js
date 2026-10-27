@@ -6,7 +6,20 @@ import { fetchEncryptedBlob } from "../lib/ipfs";
 import { decryptFile } from "../lib/crypto";
 import { bytes32ToCid, shortenHash } from "../lib/utils";
 import { getDemoRecordKey, checkDemoAccess, getDemoRecords, DEMO_PROFILES } from "../lib/demoEngine";
-import { X, Unlock, Key, FileText, Download, AlertCircle, Loader2, CheckCircle2, Eye, Terminal, Lock, ShieldCheck } from "lucide-react";
+import {
+  X,
+  Unlock,
+  Key,
+  FileText,
+  Download,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  Lock,
+  ShieldCheck,
+  Copy,
+  Check
+} from "lucide-react";
 
 export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose }) {
   const { isDemoMode, account } = useWeb3();
@@ -14,6 +27,7 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
   const [loading, setLoading] = useState(false);
   const [decryptedResult, setDecryptedResult] = useState(null);
   const [error, setError] = useState(null);
+  const [copiedText, setCopiedText] = useState(false);
 
   const cid = propCid || bytes32ToCid(recordHash);
   const demoKey = getDemoRecordKey(recordHash);
@@ -55,7 +69,7 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
         encryptedBuffer = await fetchEncryptedBlob(cid);
       } catch (ipfsErr) {
         if (isDemoMode) {
-          console.warn("IPFS fetch failed in demo mode, loading demo payload fallback:", ipfsErr);
+          console.warn("IPFS fetch fallback in demo mode:", ipfsErr);
           const demoRecords = getDemoRecords();
           const matchedRec = demoRecords.find(
             (r) => r.ipfsHash?.toLowerCase() === (recordHash || "").toLowerCase()
@@ -74,7 +88,7 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
           return;
         }
 
-        throw new Error(`Unable to fetch encrypted record from IPFS network (CID: ${cid}). Verify that IPFS is running or the node is reachable.`);
+        throw new Error(`Unable to fetch encrypted record from IPFS network (CID: ${cid}). Verify that IPFS daemon is reachable.`);
       }
 
       // 2. Decrypt in-browser using Web Crypto API
@@ -112,19 +126,28 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
     document.body.removeChild(a);
   };
 
+  const handleCopyDecryptedText = () => {
+    if (!decryptedResult?.textContent) return;
+    navigator.clipboard.writeText(decryptedResult.textContent);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+            <div className="w-10 h-10 rounded-xl bg-[#0284C7]/10 border border-[#0284C7]/20 flex items-center justify-center text-[#0284C7] dark:text-[#38BDF8]">
               <Unlock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Client-Side Decryption Station</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
+                Client-Side Decryption Station
+              </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                CID: <span className="text-cyan-600 dark:text-cyan-400">{cid}</span>
+                CID: <span className="text-[#0284C7] dark:text-[#38BDF8]">{shortenHash(cid)}</span>
               </p>
             </div>
           </div>
@@ -149,16 +172,18 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Input Patient AES-256 Secret Key (64-Char Hex)
+                  Patient AES-256 Secret Key (64-Char Hex)
                 </label>
                 {isDemoMode && accessCheck.hasAccess ? (
                   <button
                     type="button"
-                    onClick={() => setAesKey(demoKey || "e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293")}
+                    onClick={() =>
+                      setAesKey(demoKey || "e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293")
+                    }
                     className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 transition-colors cursor-pointer"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Auto-fill Patient Key (ZK Verified)</span>
+                    <span>Auto-fill Patient Key</span>
                   </button>
                 ) : isDemoMode && !accessCheck.hasAccess ? (
                   <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/30">
@@ -166,16 +191,17 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
                   </span>
                 ) : null}
               </div>
+
               <textarea
                 rows={3}
                 required
                 placeholder="Paste the patient's AES-256 hexadecimal decryption key..."
                 value={aesKey}
                 onChange={(e) => setAesKey(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-mono placeholder:text-slate-400 transition-all resize-none outline-none shadow-2xs"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-mono placeholder:text-slate-400 transition-all resize-none outline-none shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7]"
               />
               <p className="text-[11px] text-slate-500 font-mono mt-1">
-                Decryption runs entirely in your local browser memory via Web Crypto API.
+                Decryption executes entirely in browser memory via Web Crypto API.
               </p>
             </div>
 
@@ -190,7 +216,7 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
               <button
                 type="submit"
                 disabled={loading || !aesKey.trim()}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white text-xs font-bold shadow-2xs transition-all disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
               >
                 {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlock className="w-3.5 h-3.5" />}
                 <span>Decrypt Payload</span>
@@ -202,11 +228,11 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
             <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <div>
-                <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 font-heading">
                   Decryption Verified Successfully
                 </h4>
                 <p className="text-[11px] text-slate-600 dark:text-slate-300">
-                  AES-GCM-256 authentication tag matched. Data integrity intact.
+                  AES-GCM-256 authentication tag matched. Data integrity verified.
                 </p>
               </div>
             </div>
@@ -215,20 +241,29 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
                 <span>File: {decryptedResult.fileName}</span>
-                <span>Type: {decryptedResult.mimeType || "application/octet-stream"}</span>
+                {decryptedResult.textContent && (
+                  <button
+                    type="button"
+                    onClick={handleCopyDecryptedText}
+                    className="text-[#0284C7] dark:text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedText ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedText ? "Copied" : "Copy Content"}</span>
+                  </button>
+                )}
               </div>
 
               {decryptedResult.textContent ? (
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 max-h-56 overflow-y-auto">
-                  <pre className="text-xs font-mono text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                  <pre className="text-xs font-mono text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                     {decryptedResult.textContent}
                   </pre>
                 </div>
               ) : (
                 <div className="p-8 text-center bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
                   <FileText className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="text-xs text-slate-500">
-                    Binary medical file (e.g. PDF/DICOM/Image) ready for local inspection.
+                  <p className="text-xs text-slate-500 font-mono">
+                    Binary medical payload (e.g. DICOM / PDF) ready for local inspection.
                   </p>
                 </div>
               )}
@@ -245,7 +280,7 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
               <button
                 type="button"
                 onClick={handleDownload}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-600/20 transition-all cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Save Decrypted File</span>

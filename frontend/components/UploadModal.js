@@ -5,7 +5,7 @@ import { useWeb3 } from "../context/Web3Context";
 import { getEHRContract } from "../lib/contract";
 import { encryptFile } from "../lib/crypto";
 import { uploadEncryptedBlob } from "../lib/ipfs";
-import { cidToBytes32, parseContractError } from "../lib/utils";
+import { cidToBytes32, shortenHash, parseContractError } from "../lib/utils";
 import { addDemoRecord, DEMO_PROFILES } from "../lib/demoEngine";
 import {
   X,
@@ -23,8 +23,8 @@ import {
   CheckCircle2,
   Database,
   Layers,
-  Cpu,
-  Sparkles
+  Sparkles,
+  ShieldAlert
 } from "lucide-react";
 
 export default function UploadModal({ isOpen, onClose, onSuccess }) {
@@ -150,7 +150,7 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
     try {
       setError(null);
 
-      // 2. Upload Encrypted Blob to IPFS (stores in local IPFS daemon or deterministic browser node)
+      // 2. Upload Encrypted Blob to IPFS
       setStep("uploading_ipfs");
       const ipfsRes = await uploadEncryptedBlob(encryptionResult.encryptedBlob, `${file.name}.enc`);
       setIpfsResult(ipfsRes);
@@ -213,17 +213,21 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0284C7]/10 border border-[#0284C7]/20 flex items-center justify-center text-[#0284C7] dark:text-[#38BDF8]">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Encrypt & Anchor Medical Record</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Zero-Knowledge Client-Side AES-256 Protocol</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
+                Encrypt &amp; Anchor Medical Record
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                Zero-Knowledge Client-Side AES-256 Protocol
+              </p>
             </div>
           </div>
           <button
@@ -234,38 +238,59 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
           </button>
         </div>
 
-        {/* Stepper Indicator */}
-        <div className="grid grid-cols-3 border-b border-slate-200 dark:border-slate-800 text-[11px] font-mono">
+        {/* 3-Stage Stepper Bar */}
+        <div className="grid grid-cols-3 border-b border-slate-200 dark:border-slate-800 text-xs font-mono">
           <div
             className={`p-3 text-center border-r border-slate-200 dark:border-slate-800 flex items-center justify-center gap-1.5 ${
               step === "select" || step === "encrypting"
-                ? "bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-bold"
+                ? "bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] font-bold"
+                : step !== "select"
+                ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                 : "text-slate-400 dark:text-slate-500"
             }`}
           >
-            <span>1. File & AES-256</span>
+            {step !== "select" && step !== "encrypting" ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <span className="w-4 h-4 rounded-full bg-[#0284C7] text-white text-[10px] flex items-center justify-center">1</span>
+            )}
+            <span>1. File &amp; AES-256</span>
           </div>
+
           <div
             className={`p-3 text-center border-r border-slate-200 dark:border-slate-800 flex items-center justify-center gap-1.5 ${
               step === "key_saved"
-                ? "bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-bold"
+                ? "bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] font-bold"
+                : step === "completed"
+                ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                 : "text-slate-400 dark:text-slate-500"
             }`}
           >
+            {step === "completed" ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] flex items-center justify-center">2</span>
+            )}
             <span>2. Key Backup</span>
           </div>
+
           <div
             className={`p-3 text-center flex items-center justify-center gap-1.5 ${
               step === "uploading_ipfs" || step === "signing_tx" || step === "completed"
-                ? "bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-bold"
+                ? "bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] font-bold"
                 : "text-slate-400 dark:text-slate-500"
             }`}
           >
-            <span>3. IPFS & Ethereum</span>
+            {step === "completed" ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] flex items-center justify-center">3</span>
+            )}
+            <span>3. IPFS &amp; On-Chain</span>
           </div>
         </div>
 
-        {/* Body Content */}
+        {/* Modal Body */}
         <div className="p-6 space-y-5">
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5">
@@ -274,70 +299,76 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
             </div>
           )}
 
-          {/* Step 1: File Selection */}
+          {/* STEP 1: SELECT FILE */}
           {step === "select" && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 rounded-2xl p-8 text-center transition-colors cursor-pointer relative bg-slate-50 dark:bg-slate-950/60">
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-[#0284C7]/50 rounded-2xl p-8 text-center transition-colors cursor-pointer relative bg-slate-50 dark:bg-slate-950/60">
                 <input
                   type="file"
                   onChange={handleFileChange}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-                <div className="space-y-2">
-                  <div className="w-12 h-12 mx-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-xs">
+                <div className="space-y-2.5">
+                  <div className="w-12 h-12 mx-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-[#0284C7] dark:text-[#38BDF8] shadow-2xs">
                     <UploadCloud className="w-6 h-6" />
                   </div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">
-                    {file ? file.name : "Select or Drop Medical File"}
+                  <div className="text-sm font-bold text-slate-900 dark:text-white font-heading">
+                    {file ? file.name : "Select or Drop Medical Record"}
                   </div>
                   <p className="text-xs text-slate-500 font-mono">
                     {file
                       ? `${(file.size / 1024).toFixed(1)} KB • Ready for AES-GCM-256 encryption`
-                      : "Supports PDF, JSON, DICOM, or clinical records"}
+                      : "Supports PDF, JSON, DICOM, or FHIR clinical bundles"}
                   </p>
                 </div>
               </div>
 
-              {/* 1-Click Sample File Loader for Demo */}
+              {/* 1-Click Sample File Loader */}
               <button
                 type="button"
                 onClick={handleLoadSampleFile}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:scale-[1.01] active:scale-95"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition-all cursor-pointer shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
               >
-                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                <Sparkles className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8] shrink-0" />
                 <span>Load Sample Clinical Telemetry Report (1-Click Demo)</span>
               </button>
 
               <button
+                type="button"
                 onClick={handleEncryptAndProceed}
                 disabled={!file}
-                className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs shadow-md shadow-cyan-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 disabled:opacity-40 text-white font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Encrypt File Client-Side</span>
+                <span>Encrypt File in Memory</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          {/* Encrypting State */}
+          {/* ENCRYPTING PROGRESS STATE */}
           {step === "encrypting" && (
             <div className="py-12 text-center space-y-3">
-              <Loader2 className="w-8 h-8 animate-spin text-cyan-600 dark:text-cyan-400 mx-auto" />
-              <div className="text-sm font-bold text-slate-900 dark:text-white font-mono">Generating AES-GCM-256 Ciphertext...</div>
-              <p className="text-xs text-slate-500">Deriving cryptographic key in browser memory via Web Crypto API.</p>
+              <Loader2 className="w-8 h-8 animate-spin text-[#0284C7] dark:text-[#38BDF8] mx-auto" />
+              <div className="text-sm font-bold text-slate-900 dark:text-white font-mono">
+                Generating AES-GCM-256 Ciphertext...
+              </div>
+              <p className="text-xs text-slate-500">
+                Deriving cryptographic key in browser memory via Web Crypto API.
+              </p>
             </div>
           )}
 
-          {/* Step 2: Secret Key Backup */}
+          {/* STEP 2: KEY BACKUP */}
           {step === "key_saved" && encryptionResult && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 space-y-1">
                 <div className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 font-mono">
-                  <Key className="w-3.5 h-3.5" /> CRITICAL: Back Up Your Decryption Key
+                  <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>CRITICAL: Back Up Your Decryption Key</span>
                 </div>
                 <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Your medical data is encrypted with client-side Zero-Knowledge AES-256. If you lose this key, your data cannot be decrypted by anyone, including the contract authors.
+                  Your medical data is encrypted with client-side Zero-Knowledge AES-256. If you lose this key, your data cannot be decrypted by anyone, including the hospital or smart contract.
                 </p>
               </div>
 
@@ -347,10 +378,11 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
                   AES-256 Secret Key (Hexadecimal)
                 </label>
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                  <code className="text-xs font-mono text-emerald-700 dark:text-emerald-400 truncate flex-1">
+                  <code className="text-xs font-mono text-emerald-700 dark:text-emerald-400 truncate flex-1 select-all">
                     {encryptionResult.keyHex}
                   </code>
                   <button
+                    type="button"
                     onClick={handleCopyKey}
                     className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors shrink-0 cursor-pointer"
                     title="Copy Key"
@@ -362,16 +394,18 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={handleDownloadKey}
-                  className="w-full sm:w-1/2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-mono text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                  className="w-full sm:w-1/2 h-11 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-mono text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download Key JSON</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleConfirmAndUploadOnChain}
-                  className="w-full sm:w-1/2 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold font-mono text-xs shadow-md shadow-cyan-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-1/2 h-11 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white font-bold font-mono text-xs shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
                 >
                   <Layers className="w-3.5 h-3.5" />
                   <span>Anchor to Ethereum</span>
@@ -380,10 +414,10 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
             </div>
           )}
 
-          {/* Uploading / Signing State */}
+          {/* UPLOADING TO IPFS / SMART CONTRACT STATE */}
           {(step === "uploading_ipfs" || step === "signing_tx") && (
             <div className="py-12 text-center space-y-4">
-              <Loader2 className="w-8 h-8 animate-spin text-cyan-600 dark:text-cyan-400 mx-auto" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#0284C7] dark:text-[#38BDF8] mx-auto" />
               <div className="space-y-1">
                 <div className="text-sm font-bold text-slate-900 dark:text-white font-mono">
                   {step === "uploading_ipfs"
@@ -399,7 +433,7 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
             </div>
           )}
 
-          {/* Step 3: Completed */}
+          {/* STEP 3: COMPLETED */}
           {step === "completed" && (
             <div className="py-6 text-center space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
@@ -407,7 +441,9 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
               </div>
 
               <div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white">Record Successfully Anchored</h4>
+                <h4 className="text-base font-bold text-slate-900 dark:text-white font-heading">
+                  Record Successfully Anchored
+                </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Your encrypted health record is pinned to IPFS and registered on the Ethereum smart contract.
                 </p>
@@ -418,16 +454,17 @@ Digital Signature: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (EIP-712 Attested)
                 <div className="text-slate-900 dark:text-white truncate font-semibold">{recordHash}</div>
                 {txHash && (
                   <div className="text-slate-500 pt-1">
-                    Transaction: <span className="text-cyan-600 dark:text-cyan-400">{txHash.slice(0, 18)}...</span>
+                    Transaction: <span className="text-[#0284C7] dark:text-[#38BDF8]">{txHash.slice(0, 18)}...</span>
                   </div>
                 )}
               </div>
 
               <button
+                type="button"
                 onClick={handleClose}
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-semibold transition-all cursor-pointer shadow-sm"
+                className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-semibold transition-all cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
               >
-                Close & View in Ledger
+                Close &amp; View in Ledger
               </button>
             </div>
           )}

@@ -4,9 +4,19 @@ import React, { useState } from "react";
 import { ethers } from "ethers";
 import { useWeb3 } from "../context/Web3Context";
 import { getEHRContract } from "../lib/contract";
-import { shortenHash, parseContractError } from "../lib/utils";
+import { shortenHash, shortenAddress, parseContractError } from "../lib/utils";
 import { grantDemoAccess, revokeDemoAccess } from "../lib/demoEngine";
-import { X, UserPlus, UserX, AlertCircle, Loader2, Check, Shield } from "lucide-react";
+import {
+  X,
+  UserPlus,
+  UserX,
+  AlertCircle,
+  Loader2,
+  Check,
+  Shield,
+  Clock,
+  CheckCircle2
+} from "lucide-react";
 
 export default function GrantRevokeModal({
   isOpen,
@@ -34,10 +44,10 @@ export default function GrantRevokeModal({
   const isGrant = mode === "grant";
 
   const durationOptions = [
-    { label: "Indefinite", value: 0 },
-    { label: "24 Hours (Consultation)", value: 86400 },
-    { label: "7 Days (Care Episode)", value: 604800 },
-    { label: "30 Days (Specialist Referral)", value: 2592000 },
+    { label: "Indefinite", value: 0, desc: "Permanent until revoked" },
+    { label: "24 Hours", value: 86400, desc: "Acute consultation" },
+    { label: "7 Days", value: 604800, desc: "Care episode duration" },
+    { label: "30 Days", value: 2592000, desc: "Specialist referral pass" },
   ];
 
   const handleSubmit = async (e) => {
@@ -121,8 +131,8 @@ export default function GrantRevokeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -136,7 +146,7 @@ export default function GrantRevokeModal({
               {isGrant ? <UserPlus className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                 {isGrant ? "Authorize Physician Access" : "Revoke Physician Access"}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
@@ -170,17 +180,20 @@ export default function GrantRevokeModal({
               placeholder="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
               value={doctorAddress}
               onChange={(e) => setDoctorAddress(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-mono placeholder:text-slate-400 outline-none shadow-2xs"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-mono placeholder:text-slate-400 outline-none shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7]"
               required
             />
+
             {/* Quick Care Team Clinician Selector Chips */}
             <div className="pt-1.5 space-y-1.5">
-              <span className="text-[11px] font-mono text-slate-500 block">Select Attested Care Team Physician:</span>
+              <span className="text-[11px] font-mono text-slate-500 block">
+                Select Attested Care Team Physician:
+              </span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                 {[
-                  { name: "Dr. Sarah Chen, MD", specialty: "Cardiology", address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" },
-                  { name: "Dr. Marcus Vance, MD", specialty: "Neurology", address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906" },
-                  { name: "Dr. Elena Rostova, MD", specialty: "Oncology", address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" },
+                  { name: "Dr. Sarah Chen", specialty: "Cardiology", address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" },
+                  { name: "Dr. Marcus Vance", specialty: "Neurology", address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906" },
+                  { name: "Dr. Elena Rostova", specialty: "Oncology", address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" },
                 ].map((doc) => (
                   <button
                     key={doc.address}
@@ -188,11 +201,11 @@ export default function GrantRevokeModal({
                     onClick={() => setDoctorAddress(doc.address)}
                     className={`p-2 rounded-xl text-left border transition-all text-[11px] cursor-pointer ${
                       doctorAddress.toLowerCase() === doc.address.toLowerCase()
-                        ? "bg-cyan-50 dark:bg-cyan-500/15 border-cyan-400 dark:border-cyan-500/40 text-cyan-900 dark:text-cyan-300 font-semibold shadow-xs"
+                        ? "bg-[#0284C7]/10 border-[#0284C7] dark:border-[#38BDF8] text-[#0284C7] dark:text-[#38BDF8] font-semibold shadow-xs"
                         : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300"
                     }`}
                   >
-                    <div className="font-bold truncate text-[11px]">{doc.name}</div>
+                    <div className="font-bold truncate text-[11px] font-heading">{doc.name}</div>
                     <div className="text-[10px] text-slate-500 font-mono truncate">{doc.specialty}</div>
                   </button>
                 ))}
@@ -205,7 +218,9 @@ export default function GrantRevokeModal({
             <div className="space-y-1.5 pt-1">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>Access Duration Guarantee</span>
-                <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400">grantAccessWithExpiry</span>
+                <span className="text-[10px] font-mono text-[#0284C7] dark:text-[#38BDF8]">
+                  grantAccessWithExpiry
+                </span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {durationOptions.map((opt) => (
@@ -213,13 +228,14 @@ export default function GrantRevokeModal({
                     key={opt.value}
                     type="button"
                     onClick={() => setDuration(opt.value)}
-                    className={`p-2 rounded-xl text-[11px] font-medium border text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       duration === opt.value
-                        ? "bg-cyan-50 dark:bg-cyan-500/15 border-cyan-400 dark:border-cyan-500/40 text-cyan-900 dark:text-cyan-300 font-semibold shadow-xs"
+                        ? "bg-[#0284C7]/10 border-[#0284C7] dark:border-[#38BDF8] text-[#0284C7] dark:text-[#38BDF8] shadow-xs"
                         : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300"
                     }`}
                   >
-                    {opt.label}
+                    <div className="font-bold text-xs">{opt.label}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans mt-0.5">{opt.desc}</div>
                   </button>
                 ))}
               </div>
@@ -237,10 +253,10 @@ export default function GrantRevokeModal({
             <button
               type="submit"
               disabled={loading || !doctorAddress.trim()}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:outline-none ${
                 isGrant
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20"
-                  : "bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20"
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm focus-visible:ring-emerald-500"
+                  : "bg-rose-600 hover:bg-rose-500 text-white shadow-sm focus-visible:ring-rose-500"
               }`}
             >
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
