@@ -42,23 +42,27 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
       try {
         encryptedBuffer = await fetchEncryptedBlob(cid);
       } catch (ipfsErr) {
-        console.warn("IPFS fetch failed, checking demo payload fallback:", ipfsErr);
-        const demoRecords = getDemoRecords();
-        const matchedRec = demoRecords.find(
-          (r) => r.ipfsHash?.toLowerCase() === (recordHash || "").toLowerCase()
-        );
-        const simulatedText =
-          matchedRec?.payloadPreview ||
-          `[CLINICAL OBSERVATION REPORT]\nPatient: Alex Mercer (MRN-84920-A)\nPhysician: Dr. Sarah Chen, MD (Cardiology)\nRecord Hash: ${shortenHash(recordHash)}\nIPFS CID: ${cid}\n\nDIAGNOSTIC FINDINGS:\n- Resting Sinus Rhythm: 72 bpm, QTc 410ms.\n- Left Ventricular Ejection Fraction (LVEF): 62% (Normal: 55-70%).\n- Stress Echocardiography: No regional wall motion abnormalities detected.\n- Serum High-Sensitivity Troponin I: < 0.01 ng/mL (Reference: < 0.04 ng/mL).\n\nASSESSMENT & RECOMMENDATION:\nNormal cardiovascular diagnostic assessment. Continue standard outpatient telemetry monitoring.\nElectronically signed & verified via HealthLedger Zero-Knowledge Cryptographic Cipher.`;
+        if (isDemoMode) {
+          console.warn("IPFS fetch failed in demo mode, loading demo payload fallback:", ipfsErr);
+          const demoRecords = getDemoRecords();
+          const matchedRec = demoRecords.find(
+            (r) => r.ipfsHash?.toLowerCase() === (recordHash || "").toLowerCase()
+          );
+          const simulatedText =
+            matchedRec?.payloadPreview ||
+            `[CLINICAL OBSERVATION REPORT]\nPatient: Alex Mercer (MRN-84920-A)\nPhysician: Dr. Sarah Chen, MD (Cardiology)\nRecord Hash: ${shortenHash(recordHash)}\nIPFS CID: ${cid}\n\nDIAGNOSTIC FINDINGS:\n- Resting Sinus Rhythm: 72 bpm, QTc 410ms.\n- Left Ventricular Ejection Fraction (LVEF): 62% (Normal: 55-70%).\n- Stress Echocardiography: No regional wall motion abnormalities detected.\n- Serum High-Sensitivity Troponin I: < 0.01 ng/mL (Reference: < 0.04 ng/mL).\n\nASSESSMENT & RECOMMENDATION:\nNormal cardiovascular diagnostic assessment. Continue standard outpatient telemetry monitoring.\nElectronically signed & verified via HealthLedger Zero-Knowledge Cryptographic Cipher.`;
 
-        setDecryptedResult({
-          fileName: `${matchedRec?.category ? matchedRec.category.toLowerCase().replace(/\s+/g, "_") : "diagnostic"}_report.txt`,
-          mimeType: "text/plain",
-          textContent: simulatedText,
-          url: "data:text/plain;charset=utf-8," + encodeURIComponent(simulatedText),
-        });
-        setLoading(false);
-        return;
+          setDecryptedResult({
+            fileName: `${matchedRec?.category ? matchedRec.category.toLowerCase().replace(/\s+/g, "_") : "diagnostic"}_report.txt`,
+            mimeType: "text/plain",
+            textContent: simulatedText,
+            url: "data:text/plain;charset=utf-8," + encodeURIComponent(simulatedText),
+          });
+          setLoading(false);
+          return;
+        }
+
+        throw new Error(`Unable to fetch encrypted record from IPFS network (CID: ${cid}). Verify that IPFS is running or the node is reachable.`);
       }
 
       // 2. Decrypt in-browser using Web Crypto API
@@ -148,15 +152,7 @@ export default function DecryptModal({ isOpen, recordHash, cid: propCid, onClose
                   <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/30">
                     <Lock className="w-3 h-3 text-rose-500" /> Key Withheld (Access Revoked)
                   </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAesKey("e4d29a73f810bcde8932470129aefb6083210495810294810293810294810293")}
-                    className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
-                  >
-                    Insert Sample Key
-                  </button>
-                )}
+                ) : null}
               </div>
               <textarea
                 rows={3}

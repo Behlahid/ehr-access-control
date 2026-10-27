@@ -127,7 +127,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }) {
       setRecordHash(hashBytes32);
 
       // Demo Mode Fallback
-      if (isDemoMode || !signer) {
+      if (isDemoMode) {
         setStep("signing_tx");
         setTimeout(() => {
           const mockTx = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
@@ -154,6 +154,10 @@ export default function UploadModal({ isOpen, onClose, onSuccess }) {
           }
         }, 1000);
         return;
+      }
+
+      if (!signer) {
+        throw new Error("MetaMask wallet connection required to anchor records on-chain. Please connect your wallet or enter Demo Mode.");
       }
 
       // 4. Anchor to Ethereum Smart Contract

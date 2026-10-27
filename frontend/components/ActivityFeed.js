@@ -73,8 +73,14 @@ export default function ActivityFeed({ refreshTrigger }) {
   const [filterType, setFilterType] = useState("all");
 
   const fetchEvents = useCallback(async () => {
-    if (!account || (!provider && !signer) || isDemoMode || !isCorrectNetwork) {
+    if (isDemoMode) {
       setEvents(getDemoAuditLogs());
+      setLoading(false);
+      return;
+    }
+
+    if (!account || (!provider && !signer) || !isCorrectNetwork) {
+      setEvents([]);
       setLoading(false);
       return;
     }
@@ -228,8 +234,10 @@ export default function ActivityFeed({ refreshTrigger }) {
 
   useEffect(() => {
     const handleSync = () => {
-      if (!account || (!provider && !signer) || isDemoMode || !isCorrectNetwork) {
+      if (isDemoMode) {
         setEvents(getDemoAuditLogs());
+      } else {
+        fetchEvents();
       }
     };
     window.addEventListener("ehr:audit-changed", handleSync);
@@ -238,7 +246,7 @@ export default function ActivityFeed({ refreshTrigger }) {
       window.removeEventListener("ehr:audit-changed", handleSync);
       window.removeEventListener("ehr:reset", handleSync);
     };
-  }, [account, provider, signer, isDemoMode, isCorrectNetwork]);
+  }, [isDemoMode, fetchEvents]);
 
   const filteredEvents = events.filter((ev) => {
     if (filterType === "all") return true;

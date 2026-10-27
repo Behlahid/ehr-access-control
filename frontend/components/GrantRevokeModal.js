@@ -56,7 +56,7 @@ export default function GrantRevokeModal({
     }
 
     // Demo Mode Simulation Fallback
-    if (isDemoMode || !signer) {
+    if (isDemoMode) {
       setLoading(true);
       setTimeout(() => {
         setLoading(false);
@@ -77,6 +77,11 @@ export default function GrantRevokeModal({
         }
         onClose();
       }, 700);
+      return;
+    }
+
+    if (!signer) {
+      setError("MetaMask wallet connection required to sign transaction. Please connect your wallet or enter Demo Mode.");
       return;
     }
 

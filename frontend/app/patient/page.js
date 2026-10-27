@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useWeb3 } from "../../context/Web3Context";
 import { getEHRContract } from "../../lib/contract";
-import { bytes32ToCid, shortenHash, formatTimestamp, parseContractError } from "../../lib/utils";
+import { bytes32ToCid, shortenAddress, shortenHash, formatTimestamp, parseContractError } from "../../lib/utils";
 import { getDemoRecords, toggleDemoFL, DEMO_PROFILES } from "../../lib/demoEngine";
 import UploadModal from "../../components/UploadModal";
 import GrantRevokeModal from "../../components/GrantRevokeModal";
@@ -79,6 +79,7 @@ export default function PatientDashboard() {
     signer,
     provider,
     connectWallet,
+    isConnecting,
     isDemoMode,
     demoUser,
     enterDemoMode,
@@ -117,14 +118,27 @@ export default function PatientDashboard() {
     try {
       setLoading(true);
 
-      // If not connected to MetaMask, or in Demo Mode, or on unsupported network, immediately load clinical demo records
-      if (!account || isDemoMode || !isCorrectNetwork || (!signer && !provider)) {
+      // In Demo Mode, load clinical demo records
+      if (isDemoMode) {
         setRecords(getDemoRecords());
         setLoading(false);
         return;
       }
 
+      // If no wallet connected, do not load records
+      if (!account) {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+
       const runner = signer || provider;
+      if (!runner) {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+
       const contract = getEHRContract(runner);
 
       try {
@@ -139,20 +153,20 @@ export default function PatientDashboard() {
           }));
           setRecords(parsed);
         } else {
-          // If on-chain has no records yet for this fresh account, show initial records safely
-          setRecords(getDemoRecords());
+          // Connected wallet with 0 records anchored on-chain
+          setRecords([]);
         }
       } catch (contractErr) {
-        console.warn("Could not query on-chain records, using demo cache:", contractErr);
-        setRecords(getDemoRecords());
+        console.warn("Could not query on-chain records:", contractErr);
+        setRecords([]);
       }
     } catch (err) {
       console.error("Error fetching my records:", err);
-      setRecords(getDemoRecords());
+      setRecords([]);
     } finally {
       setLoading(false);
     }
-  }, [account, signer, provider, isDemoMode, isCorrectNetwork]);
+  }, [account, signer, provider, isDemoMode]);
 
   useEffect(() => {
     fetchMyRecords();
@@ -160,8 +174,10 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     const handleSync = () => {
-      if (!account || isDemoMode || !isCorrectNetwork || (!signer && !provider)) {
+      if (isDemoMode) {
         setRecords(getDemoRecords());
+      } else if (account) {
+        fetchMyRecords();
       }
     };
     window.addEventListener("ehr:records-changed", handleSync);
@@ -170,12 +186,12 @@ export default function PatientDashboard() {
       window.removeEventListener("ehr:records-changed", handleSync);
       window.removeEventListener("ehr:reset", handleSync);
     };
-  }, [account, isDemoMode, isCorrectNetwork, signer, provider]);
+  }, [account, isDemoMode, fetchMyRecords]);
 
   const handleToggleFL = async (recordHash, currentStatus) => {
     const newStatus = !currentStatus;
 
-    if (isDemoMode || !signer) {
+    if (isDemoMode) {
       setTogglingFlHash(recordHash);
       setTimeout(() => {
         const updated = toggleDemoFL(recordHash, newStatus);
@@ -188,6 +204,15 @@ export default function PatientDashboard() {
         });
         setTogglingFlHash(null);
       }, 500);
+      return;
+    }
+
+    if (!signer) {
+      setNotification({
+        type: "error",
+        title: "Signer Wallet Required",
+        message: "Please connect your MetaMask wallet to sign this consent update transaction.",
+      });
       return;
     }
 
@@ -258,7 +283,7 @@ export default function PatientDashboard() {
     };
   };
 
-  const isSimulated = isDemoMode || !signer;
+  const isSimulated = Boolean(isDemoMode);
 
   const flCount = records.filter((r) => r.flEligible).length;
   const flPercentage = records.length > 0 ? Math.round((flCount / records.length) * 100) : 0;
@@ -286,6 +311,112 @@ export default function PatientDashboard() {
     return matchesSearch;
   });
 
+  // State A: Disconnected / Unauthenticated Gateway (Neither in Demo Mode nor connected with Web3 Wallet)
+  if (!account && !isDemoMode) {
+    return (
+      <div className="space-y-8 max-w-5xl mx-auto py-6">
+        <Notification notification={notification} onClose={() => setNotification(null)} />
+        <JargonTranslatorModal
+          isOpen={isJargonModalOpen}
+          onClose={() => setIsJargonModalOpen(false)}
+        />
+
+        {/* HERO CARD */}
+        <div className="surface-card card-premium shimmer-card rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 dark:bg-purple-500/15 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
+
+          <div className="relative z-10 flex flex-col items-center text-center max-w-2xl mx-auto">
+            {/* Status Beacon Pill */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30 text-xs font-mono font-semibold mb-6 shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+              </span>
+              <span>PATIENT ENCLAVE GATEWAY • AUTHENTICATION REQUIRED</span>
+            </div>
+
+            {/* Enclave Shield Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-cyan-600 dark:bg-cyan-500 text-white flex items-center justify-center shadow-lg shadow-cyan-600/30 mb-6 animate-subtle-pulse">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
+              Patient Sovereign Vault
+            </h1>
+
+            <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed mb-8">
+              HealthLedger patient vaults are cryptographically isolated enclaves. To inspect your diagnostic records, grant time-locked physician consultation access, or contribute to federated learning, please authenticate with your Ethereum wallet or explore our clinical sandbox.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full justify-center">
+              <button
+                type="button"
+                onClick={connectWallet}
+                disabled={isConnecting}
+                className="btn-premium w-full sm:w-auto h-12 px-6 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm tracking-tight shadow-md shadow-cyan-600/20 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+              >
+                {isConnecting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Key className="w-4 h-4" />
+                )}
+                <span>Connect MetaMask Wallet</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => enterDemoMode("patient")}
+                className="btn-premium group w-full sm:w-auto h-12 px-6 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 font-bold text-sm tracking-tight shadow-sm flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 transition-transform group-hover:scale-110" />
+                <span>Launch Patient Demo (Alex Mercer)</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-500 mt-4 font-mono">
+              Sepolia Testnet Contract • Zero Plaintext Storage
+            </p>
+          </div>
+        </div>
+
+        {/* 3 Architecture Pillar Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200 dark:border-cyan-500/20">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Client-Side WebCrypto</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Medical payloads are encrypted directly in your browser with AES-GCM-256 before upload. Storage nodes only see random ciphertext.
+            </p>
+          </div>
+
+          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">EIP-712 Delegations</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Grant and revoke doctor consultation permissions with cryptographic signatures and automatic timestamp expiration.
+            </p>
+          </div>
+
+          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-500/20">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Privacy-Preserving FL</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Opt-in to medical research by training AI models locally with Differential Privacy (DP-SGD) without exposing sensitive clinical records.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Toast Notification */}
@@ -302,7 +433,7 @@ export default function PatientDashboard() {
             message: `Your medical file ${fileName ? `"${fileName}"` : ""} was encrypted client-side with AES-GCM-256 and registered on-chain.`,
             txHash: tx,
           });
-          if (isDemoMode || !signer) {
+          if (isDemoMode) {
             setRecords(getDemoRecords());
           }
           setRefreshTrigger((prev) => prev + 1);
@@ -337,17 +468,17 @@ export default function PatientDashboard() {
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-              {isSimulated || isDemoMode ? "Alex Mercer" : (account ? "Sovereign Health Node" : "Patient Portal")}
+              {isDemoMode ? "Alex Mercer" : "Sovereign Health Node"}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-              {isSimulated || isDemoMode ? "MRN-9482-A • Metro Health System" : shortenAddress(account)}
+              {isDemoMode ? "MRN-9482-A • Metro Health System" : (account ? `DID:ETH • ${shortenAddress(account)}` : "Not Authenticated")}
             </span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-500/30">
               <span className="relative flex h-2 w-2">
                 <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span>Sovereign Verified</span>
+              <span>{isDemoMode ? "Demo Sandbox Attested" : "Ethereum Node Verified"}</span>
             </span>
           </div>
 
@@ -398,263 +529,294 @@ export default function PatientDashboard() {
       </section>
 
       {/* EXECUTIVE VITALS & TELEMETRY (Apple Health Bento Grid - Stitch Design) */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Executive Vitals &amp; Telemetry</h2>
-          </div>
-          <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5 shadow-2xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            Live BLE Telemetry
-          </span>
-        </div>
-
-        {/* 4 Vitals Bento Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Resting Heart Rate */}
-          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-75">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Resting Heart Rate</span>
-              <Heart className="w-4 h-4 text-rose-500 animate-heartbeat" />
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">72</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">bpm</span>
-            </div>
-            {/* Delicate Apple Health SVG Sparkline Curve with Gradient Fill */}
-            <div className="my-2.5 h-10 w-full overflow-hidden">
-              <svg className="w-full h-full text-cyan-600 dark:text-cyan-400" preserveAspectRatio="none" viewBox="0 0 100 30">
-                <defs>
-                  <linearGradient id="patientHrGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M0,18 C12,18 18,8 28,12 C38,16 42,24 52,14 C62,6 68,22 78,12 C88,4 94,14 100,10 L100,30 L0,30 Z"
-                  fill="url(#patientHrGrad)"
-                />
-                <path
-                  d="M0,18 C12,18 18,8 28,12 C38,16 42,24 52,14 C62,6 68,22 78,12 C88,4 94,14 100,10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  className="animate-pulse-path"
-                />
-              </svg>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Normal Sinus
-              </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">58 - 81 bpm</span>
-            </div>
-          </div>
-
-          {/* Card 2: Blood Pressure */}
-          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-150">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Pressure</span>
-              <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">118/78</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mmHg</span>
-            </div>
-            {/* Dual Range Indicator */}
-            <div className="my-2.5 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                <span>Systolic 118</span>
-                <span>Diastolic 78</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
-                <div className="w-3/5 bg-cyan-600 dark:bg-cyan-500 rounded-full transition-all duration-700 ease-out" />
-                <div className="w-2/5 bg-slate-200 dark:bg-slate-700" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Optimal
-              </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Stage 1 Norm</span>
-            </div>
-          </div>
-
-          {/* Card 3: Fasting Blood Glucose */}
-          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Fasting Blood Glucose</span>
-              <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">92</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mg/dL</span>
-            </div>
-            {/* Smooth Fasting Glucose Wave */}
-            <div className="my-2.5 h-10 w-full overflow-hidden">
-              <svg className="w-full h-full text-purple-600 dark:text-purple-400" preserveAspectRatio="none" viewBox="0 0 100 30">
-                <defs>
-                  <linearGradient id="patientGlucoseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
-                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M0,16 C20,14 40,18 60,15 C80,13 90,15 100,14 L100,30 L0,30 Z"
-                  fill="url(#patientGlucoseGrad)"
-                />
-                <path
-                  d="M0,16 C20,14 40,18 60,15 C80,13 90,15 100,14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="2"
-                  className="animate-pulse-path"
-                />
-              </svg>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Normal
-              </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Est. A1C: 4.9%</span>
-            </div>
-          </div>
-
-          {/* Card 4: Blood Oxygen */}
-          <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-300">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Oxygen</span>
-              <Cpu className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">99%</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">SpO2</span>
-            </div>
-            {/* Pulse Oximetry Continuous Wave */}
-            <div className="my-2.5 h-10 w-full overflow-hidden">
-              <svg className="w-full h-full text-emerald-600 dark:text-emerald-400" preserveAspectRatio="none" viewBox="0 0 100 30">
-                <defs>
-                  <linearGradient id="patientSpo2Grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
-                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M0,22 C10,22 15,22 20,8 C22,2 25,28 28,18 C32,10 38,22 45,22 C55,22 60,22 65,8 C67,2 70,28 73,18 C77,10 83,22 100,22 L100,30 L0,30 Z"
-                  fill="url(#patientSpo2Grad)"
-                />
-                <path
-                  d="M0,22 C10,22 15,22 20,8 C22,2 25,28 28,18 C32,10 38,22 45,22 C55,22 60,22 65,8 C67,2 70,28 73,18 C77,10 83,22 100,22"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="1.8"
-                  className="animate-pulse-path"
-                />
-              </svg>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Optimal Saturation
-              </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Cont. Pulse 99</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* DISCRETE FHIR DIAGNOSTIC OBSERVATIONS (Stitch Continuous Range Sliders) */}
-      <section className="surface-card rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div>
+      {isDemoMode ? (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">FHIR Diagnostic Observations</h3>
+              <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Executive Vitals &amp; Telemetry</h2>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Standard: <span className="font-mono text-[11px]">HL7 FHIR v4.0.1 Observation Resource Schema</span> • Verified Specimen ID: #SPEC-9921
-            </p>
-          </div>
-          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 self-start">
-            <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 shadow-sm border border-slate-200 dark:border-slate-700">
-              Lipid Panel
-            </span>
-            <span className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Metabolic Markers
-            </span>
-            <span className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Biomarker Trends
+            <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5 shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-radar absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              Live BLE Telemetry
             </span>
           </div>
-        </div>
 
-        {/* Continuous Range Sliders */}
-        <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
-          <LabRangeBar
-            name="Total Cholesterol"
-            value={185}
-            unit="mg/dL"
-            loinc="LOINC: 2093-3"
-            min={0}
-            max={300}
-            optimalMax={200}
-            borderlineMax={239}
-            targetLabel="(<200 mg/dL Desirable)"
-            status="normal"
-            statusLabel="In-Range"
-          />
-          <LabRangeBar
-            name="Triglycerides"
-            value={130}
-            unit="mg/dL"
-            loinc="LOINC: 2571-8"
-            min={0}
-            max={300}
-            optimalMax={150}
-            borderlineMax={199}
-            targetLabel="(<150 mg/dL Normal)"
-            status="normal"
-            statusLabel="Safe Zone"
-          />
-          <LabRangeBar
-            name="HDL Cholesterol"
-            value={54}
-            unit="mg/dL"
-            loinc="LOINC: 2085-9"
-            min={0}
-            max={100}
-            optimalMax={60}
-            borderlineMax={40}
-            targetLabel="(>40 mg/dL Protective)"
-            status="normal"
-            statusLabel="Protective"
-          />
-          <LabRangeBar
-            name="Fasting Glucose"
-            value={92}
-            unit="mg/dL"
-            loinc="LOINC: 1558-6"
-            min={0}
-            max={160}
-            optimalMax={99}
-            borderlineMax={125}
-            targetLabel="(70-99 mg/dL Fasting Normal)"
-            status="normal"
-            statusLabel="Optimal"
-          />
-        </div>
-      </section>
+          {/* 4 Vitals Bento Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Resting Heart Rate */}
+            <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-75">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Resting Heart Rate</span>
+                <Heart className="w-4 h-4 text-rose-500 animate-heartbeat" />
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">72</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">bpm</span>
+              </div>
+              {/* Delicate Apple Health SVG Sparkline Curve with Gradient Fill */}
+              <div className="my-2.5 h-10 w-full overflow-hidden">
+                <svg className="w-full h-full text-cyan-600 dark:text-cyan-400" preserveAspectRatio="none" viewBox="0 0 100 30">
+                  <defs>
+                    <linearGradient id="patientHrGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,18 C12,18 18,8 28,12 C38,16 42,24 52,14 C62,6 68,22 78,12 C88,4 94,14 100,10 L100,30 L0,30 Z"
+                    fill="url(#patientHrGrad)"
+                  />
+                  <path
+                    d="M0,18 C12,18 18,8 28,12 C38,16 42,24 52,14 C62,6 68,22 78,12 C88,4 94,14 100,10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    className="animate-pulse-path"
+                  />
+                </svg>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Normal Sinus
+                </span>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">58 - 81 bpm</span>
+              </div>
+            </div>
+
+            {/* Card 2: Blood Pressure */}
+            <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-150">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Pressure</span>
+                <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">118/78</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mmHg</span>
+              </div>
+              {/* Dual Range Indicator */}
+              <div className="my-2.5 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                  <span>Systolic 118</span>
+                  <span>Diastolic 78</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                  <div className="w-3/5 bg-cyan-600 dark:bg-cyan-500 rounded-full transition-all duration-700 ease-out" />
+                  <div className="w-2/5 bg-slate-200 dark:bg-slate-700" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Optimal
+                </span>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Stage 1 Norm</span>
+              </div>
+            </div>
+
+            {/* Card 3: Fasting Blood Glucose */}
+            <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Fasting Blood Glucose</span>
+                <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">92</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">mg/dL</span>
+              </div>
+              {/* Smooth Fasting Glucose Wave */}
+              <div className="my-2.5 h-10 w-full overflow-hidden">
+                <svg className="w-full h-full text-purple-600 dark:text-purple-400" preserveAspectRatio="none" viewBox="0 0 100 30">
+                  <defs>
+                    <linearGradient id="patientGlucoseGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,16 C20,14 40,18 60,15 C80,13 90,15 100,14 L100,30 L0,30 Z"
+                    fill="url(#patientGlucoseGrad)"
+                  />
+                  <path
+                    d="M0,16 C20,14 40,18 60,15 C80,13 90,15 100,14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="2"
+                    className="animate-pulse-path"
+                  />
+                </svg>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Normal
+                </span>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Est. A1C: 4.9%</span>
+              </div>
+            </div>
+
+            {/* Card 4: Blood Oxygen */}
+            <div className="surface-card card-premium shimmer-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 transition-all shadow-sm animate-fade-in-up delay-300">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Blood Oxygen</span>
+                <Cpu className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">99%</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">SpO2</span>
+              </div>
+              {/* Pulse Oximetry Continuous Wave */}
+              <div className="my-2.5 h-10 w-full overflow-hidden">
+                <svg className="w-full h-full text-emerald-600 dark:text-emerald-400" preserveAspectRatio="none" viewBox="0 0 100 30">
+                  <defs>
+                    <linearGradient id="patientSpo2Grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,22 C10,22 15,22 20,8 C22,2 25,28 28,18 C32,10 38,22 45,22 C55,22 60,22 65,8 C67,2 70,28 73,18 C77,10 83,22 100,22 L100,30 L0,30 Z"
+                    fill="url(#patientSpo2Grad)"
+                  />
+                  <path
+                    d="M0,22 C10,22 15,22 20,8 C22,2 25,28 28,18 C32,10 38,22 45,22 C55,22 60,22 65,8 C67,2 70,28 73,18 C77,10 83,22 100,22"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="1.8"
+                    className="animate-pulse-path"
+                  />
+                </svg>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Optimal Saturation
+                </span>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Cont. Pulse 99</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+              <Activity className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Biometric IoT &amp; Wearable Telemetry</h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                  No Active BLE Sensor
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Pair an Apple HealthKit bridge, Garmin API, or BLE Holter sensor to stream encrypted vital telemetry directly into your sovereign enclave.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => enterDemoMode("patient")}
+            className="btn-premium group flex items-center gap-1.5 h-9 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 text-xs font-semibold transition-all shrink-0 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 transition-transform group-hover:scale-110" />
+            <span>Preview Simulated Vitals in Demo</span>
+          </button>
+        </section>
+      )}
+
+      {/* DISCRETE FHIR DIAGNOSTIC OBSERVATIONS (Stitch Continuous Range Sliders - Demo Only) */}
+      {isDemoMode && (
+        <section className="surface-card rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">FHIR Diagnostic Observations</h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Standard: <span className="font-mono text-[11px]">HL7 FHIR v4.0.1 Observation Resource Schema</span> • Verified Specimen ID: #SPEC-9921
+              </p>
+            </div>
+            <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 self-start">
+              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 shadow-sm border border-slate-200 dark:border-slate-700">
+                Lipid Panel
+              </span>
+              <span className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Metabolic Markers
+              </span>
+              <span className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Biomarker Trends
+              </span>
+            </div>
+          </div>
+
+          {/* Continuous Range Sliders */}
+          <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
+            <LabRangeBar
+              name="Total Cholesterol"
+              value={185}
+              unit="mg/dL"
+              loinc="LOINC: 2093-3"
+              min={0}
+              max={300}
+              optimalMax={200}
+              borderlineMax={239}
+              targetLabel="(<200 mg/dL Desirable)"
+              status="normal"
+              statusLabel="In-Range"
+            />
+            <LabRangeBar
+              name="Triglycerides"
+              value={130}
+              unit="mg/dL"
+              loinc="LOINC: 2571-8"
+              min={0}
+              max={300}
+              optimalMax={150}
+              borderlineMax={199}
+              targetLabel="(<150 mg/dL Normal)"
+              status="normal"
+              statusLabel="Safe Zone"
+            />
+            <LabRangeBar
+              name="HDL Cholesterol"
+              value={54}
+              unit="mg/dL"
+              loinc="LOINC: 2085-9"
+              min={0}
+              max={100}
+              optimalMax={60}
+              borderlineMax={40}
+              targetLabel="(>40 mg/dL Protective)"
+              status="normal"
+              statusLabel="Protective"
+            />
+            <LabRangeBar
+              name="Fasting Glucose"
+              value={92}
+              unit="mg/dL"
+              loinc="LOINC: 1558-6"
+              min={0}
+              max={160}
+              optimalMax={99}
+              borderlineMax={125}
+              targetLabel="(70-99 mg/dL Fasting Normal)"
+              status="normal"
+              statusLabel="Optimal"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Primary Patient Portal View Tabs: Linear / Apple Health Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 relative z-10">
@@ -688,7 +850,7 @@ export default function PatientDashboard() {
           <Stethoscope className="w-3.5 h-3.5" />
           <span>Care Team & Authorizations</span>
           <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-            2 Active
+            {isDemoMode ? "2 Active" : "0 Active"}
           </span>
         </button>
       </div>

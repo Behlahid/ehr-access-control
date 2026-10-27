@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useWeb3 } from "../context/Web3Context";
 import { getDemoPermissions, revokeDemoAccess } from "../lib/demoEngine";
 import {
   Stethoscope,
@@ -49,7 +50,12 @@ const INITIAL_CARE_TEAM = [
 ];
 
 export default function CareTeamRoster({ onRevokeClick, onNotification }) {
+  const { isDemoMode } = useWeb3();
+
   const computeCareTeam = useCallback(() => {
+    if (!isDemoMode) {
+      return [];
+    }
     const perms = getDemoPermissions();
     return INITIAL_CARE_TEAM.map((doc) => {
       const docLower = doc.address.toLowerCase();
@@ -72,9 +78,9 @@ export default function CareTeamRoster({ onRevokeClick, onNotification }) {
         accessibleRecords: isStillActive ? doc.accessibleRecords : ["No records authorized"],
       };
     });
-  }, []);
+  }, [isDemoMode]);
 
-  const [careTeam, setCareTeam] = useState(INITIAL_CARE_TEAM);
+  const [careTeam, setCareTeam] = useState(() => (isDemoMode ? INITIAL_CARE_TEAM : []));
   const [revokingId, setRevokingId] = useState(null);
 
   useEffect(() => {
