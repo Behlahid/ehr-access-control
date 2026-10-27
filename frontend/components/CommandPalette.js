@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -25,7 +26,12 @@ export default function CommandPalette({ isOpen, onClose, onOpenJargon }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -193,15 +199,15 @@ export default function CommandPalette({ isOpen, onClose, onOpenJargon }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, filteredItems, selectedIndex, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 my-auto sm:my-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
@@ -320,6 +326,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenJargon }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

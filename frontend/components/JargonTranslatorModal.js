@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { JARGON_TRANSLATION_MATRIX } from "../lib/jargonMatrix";
 import {
   BookOpen,
@@ -20,8 +21,13 @@ import {
 export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = "" }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [mounted, setMounted] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (isOpen) {
       setQuery(initialQuery || "");
       setSelectedCategory("all");
@@ -37,7 +43,7 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
     }
   }, [isOpen, initialQuery, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const categories = [
     "all",
@@ -62,13 +68,13 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
     return matchesCategory && matchesQuery;
   });
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-6 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl max-h-[85vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-3xl max-h-[85vh] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden my-auto animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -143,23 +149,23 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
                 className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all space-y-2.5"
               >
                 {/* Top Row: Technical vs Plain */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/80">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/20 line-through opacity-85">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+                  <div className="flex flex-wrap items-center gap-2 max-w-full">
+                    <span className="text-xs font-mono font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/20 line-through opacity-85 break-all">
                       {item.technicalTerm}
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white break-words">
                       {item.plainTerm}
                     </span>
                   </div>
-                  <span className={`self-start sm:self-auto text-[10px] font-mono font-medium px-2 py-0.5 rounded-full border ${item.badgeColor}`}>
+                  <span className={`self-start text-[10px] font-mono font-medium px-2 py-0.5 rounded-full border shrink-0 ${item.badgeColor}`}>
                     {item.badge}
                   </span>
                 </div>
 
                 {/* Plain Explanation */}
-                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed break-words">
                   {item.plainMeaning}
                 </div>
 
@@ -170,7 +176,7 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
                       <Shield className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                       <span>Why This Protects You</span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 leading-normal">
+                    <p className="text-slate-600 dark:text-slate-400 leading-normal break-words">
                       {item.whyItProtectsYou}
                     </p>
                   </div>
@@ -180,7 +186,7 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
                       <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                       <span>Everyday Analogy</span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 leading-normal italic">
+                    <p className="text-slate-600 dark:text-slate-400 leading-normal italic break-words">
                       "{item.analogy}"
                     </p>
                   </div>
@@ -196,6 +202,7 @@ export default function JargonTranslatorModal({ isOpen, onClose, initialQuery = 
           <span className="font-mono text-slate-400">HIPAA & HL7 Plain-Language Compliant</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

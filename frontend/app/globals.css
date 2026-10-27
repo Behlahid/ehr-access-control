@@ -14,10 +14,13 @@
   --foreground: #f1f5f9;
 }
 
+html,
 body {
   color: var(--foreground);
   background-color: var(--background);
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
   font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
