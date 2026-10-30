@@ -549,17 +549,14 @@ export default function DoctorDashboard() {
         <div className="surface-card rounded-2xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden text-center">
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Status Beacon */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] border border-[#0284C7]/30 text-xs font-mono font-semibold">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0284C7] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0284C7]" />
-              </span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
               <span>HOSPITAL ENCLAVE • PHYSICIAN ATTESTATION REQUIRED</span>
             </div>
 
             {/* Emblem Icon */}
-            <div className="w-16 h-16 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center shadow-lg shadow-[#0284C7]/20 mx-auto">
-              <Stethoscope className="w-8 h-8" />
+            <div className="w-12 h-12 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 flex items-center justify-center shadow-xs mx-auto">
+              <Stethoscope className="w-6 h-6" />
             </div>
 
             <div>

@@ -112,7 +112,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-[#BAE6FD]/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#06080C]/95 backdrop-blur-md transition-colors">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#090D14]/95 backdrop-blur-md transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-3">
             
@@ -122,19 +122,19 @@ export default function Navbar() {
                 href="/"
                 className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none rounded-xl"
               >
-                <Logo size={34} />
+                <Logo size={32} />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white font-heading group-hover:text-[#0284C7] transition-colors">
-                      Health<span className="text-[#0284C7]">Ledger</span>
+                    <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white font-heading group-hover:text-sky-600 transition-colors">
+                      Health<span className="text-sky-600 dark:text-sky-400">Ledger</span>
                     </span>
-                    <span className="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                      <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      EHR Smart Contract
+                    <span className="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Ethereum Mainnet
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:block">
-                    Zero-Knowledge Sovereignty
+                    Clinical EHR Governance &amp; Federated AI
                   </span>
                 </div>
               </Link>
@@ -143,15 +143,15 @@ export default function Navbar() {
             {/* 2. Primary Navigation: Segmented Switcher (Desktop) */}
             <nav
               aria-label="Portal Navigation"
-              className="hidden md:flex items-center h-10 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800"
+              className="hidden md:flex items-center h-9 p-1 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800"
             >
               <button
                 type="button"
                 id="nav-patient-tab"
                 onClick={() => handleSwitchRole("patient")}
-                className={`flex items-center gap-2 h-8 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none ${
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   isPatientActive
-                    ? "bg-[#0284C7] text-white shadow-xs"
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -163,9 +163,9 @@ export default function Navbar() {
                 type="button"
                 id="nav-doctor-tab"
                 onClick={() => handleSwitchRole("doctor")}
-                className={`flex items-center gap-2 h-8 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none ${
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   isDoctorActive
-                    ? "bg-[#0891B2] text-white shadow-xs"
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >

@@ -118,17 +118,17 @@ h1, h2, h3, h4, h5, h6 {
   background: #334155;
 }
 
-/* High-end solid elevated surfaces: Apple Health / Epic MyChart Light Mode */
+/* High-end architectural surfaces: Apple Health & Linear precision */
 .surface-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
 
 .dark .surface-card {
   background-color: #0d121c;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: none;
 }
 
 .surface-card-subtle {
@@ -138,30 +138,26 @@ h1, h2, h3, h4, h5, h6 {
 
 .dark .surface-card-subtle {
   background-color: #101724;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .surface-interactive {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .surface-interactive:hover {
-  background-color: #f8fafc;
+  background-color: #ffffff;
   border-color: #cbd5e1;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
 }
 
 .dark .surface-interactive {
   background-color: #0d121c;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 .dark .surface-interactive:hover {
-  background-color: #121826;
-  border-color: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1px);
-  box-shadow: none;
+  background-color: #101622;
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 /* Clinical inputs */
@@ -246,140 +242,74 @@ h1, h2, h3, h4, h5, h6 {
   animation: floatSlow 4s ease-in-out infinite;
 }
 
-/* 4. Shimmer sweep across cards and buttons */
-@keyframes shimmerSweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+/* High-precision clinical typography and controls */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-.shimmer-card {
-  position: relative;
-  overflow: hidden;
+/* Grounded, high-velocity buttons */
+.btn-clinical-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 0.625rem;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-clinical-primary:hover {
+  background-color: #1e293b;
+}
+.dark .btn-clinical-primary {
+  background-color: #f8fafc;
+  color: #090d14;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.dark .btn-clinical-primary:hover {
+  background-color: #e2e8f0;
 }
 
-.shimmer-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.12) 50%,
-    transparent 100%
-  );
-  transform: translateX(-150%) skewX(-20deg);
-  pointer-events: none;
+.btn-clinical-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 0.625rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-clinical-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+.dark .btn-clinical-secondary {
+  background-color: #0d121c;
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.dark .btn-clinical-secondary:hover {
+  background-color: #121824;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.shimmer-card:hover::after {
-  animation: shimmerSweep 1.2s ease-in-out forwards;
+/* Fast, subtle transitions */
+.animate-fade-in-up {
+  animation: subtleFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 5. Smooth Staggered Entrance Animations */
-@keyframes fadeInUp {
+@keyframes subtleFadeIn {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in-scale {
-  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Stagger delay helpers */
-.delay-75 { animation-delay: 75ms; }
-.delay-100 { animation-delay: 100ms; }
-.delay-150 { animation-delay: 150ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-
-/* 6. Glowing border breathing animation */
-@keyframes borderGlow {
-  0%, 100% {
-    border-color: rgba(6, 182, 212, 0.25);
-    box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.08);
-  }
-  50% {
-    border-color: rgba(6, 182, 212, 0.6);
-    box-shadow: 0 0 25px 0 rgba(6, 182, 212, 0.22);
-  }
-}
-
-.animate-border-glow {
-  animation: borderGlow 3s ease-in-out infinite;
-}
-
-/* 7. Ambient Background Aurora Glow */
-@keyframes auroraDrift {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate(30px, -20px) scale(1.12);
-    opacity: 0.8;
-  }
-}
-
-.animate-aurora {
-  animation: auroraDrift 10s ease-in-out infinite alternate;
-}
-
-/* 8. Premium Button Shimmer & Micro-Interactions */
-.btn-premium {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.btn-premium:hover {
-  transform: translateY(-1.5px);
-  box-shadow: 0 8px 24px -4px rgba(8, 145, 178, 0.35);
-}
-
-.btn-premium:active {
-  transform: translateY(0.5px) scale(0.98);
-}
-
-/* 9. Card Premium Elevation with Smooth Tilt / Lift */
-.card-premium {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.card-premium:hover {
-  transform: translateY(-2.5px);
-  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
-}
-
-.dark .card-premium:hover {
-  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.7), 0 0 20px -2px rgba(6, 182, 212, 0.12);
-  border-color: rgba(6, 182, 212, 0.35);
 }
 
 /* 10. Sparkline animated pulse stroke */

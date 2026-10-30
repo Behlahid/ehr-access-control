@@ -1,33 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import { useWeb3 } from "../context/Web3Context";
 import Logo from "../components/Logo";
 import {
-  Shield,
   User,
   Stethoscope,
   Lock,
   Database,
   ArrowRight,
-  CheckCircle2,
+  ShieldCheck,
   Cpu,
   Layers,
-  Zap,
-  ExternalLink,
-  Sparkles,
-  Radio,
-  Key,
-  ShieldCheck,
-  FileCode,
   Activity,
-  Server,
+  Key,
+  ExternalLink,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
   FileText
 } from "lucide-react";
 
 export default function LandingPage() {
-  const { account, connectWallet, isConnecting, setRole, enterDemoMode } = useWeb3();
+  const { enterDemoMode } = useWeb3();
   const router = useRouter();
 
   const handleDemoLaunch = (selectedRole) => {
@@ -39,534 +35,396 @@ export default function LandingPage() {
     }
   };
 
-  const cryptographicPipeline = [
+  const PIPELINE_STAGES = [
     {
-      step: "01",
-      title: "WebCrypto AES-GCM-256",
-      badge: "In-Memory Ephemeral Session",
-      icon: Lock,
-      description:
-        "Medical records and FHIR observation bundles are encrypted inside the client browser memory via Web Crypto API. Nonces and raw keys are never transmitted unencrypted.",
-      codeSnippet: `// 256-bit symmetric encryption in memory
-const key = await crypto.subtle.generateKey(
+      num: "01",
+      title: "Client-Side Encryption",
+      spec: "Web Crypto AES-256-GCM",
+      detail:
+        "Medical records and FHIR JSON bundles are encrypted in-memory before transmission. A random 96-bit IV is generated per record; raw keys never touch external servers.",
+      code: `const key = await crypto.subtle.generateKey(
   { name: "AES-GCM", length: 256 }, true, ["encrypt"]
 );
 const ciphertext = await crypto.subtle.encrypt(
-  { name: "AES-GCM", iv }, key, fhirPayloadBuffer
+  { name: "AES-GCM", iv }, key, fileBuffer
 );`
     },
     {
-      step: "02",
-      title: "IPFS Content-Addressing",
-      badge: "Immutable Content Pinning",
-      icon: Database,
-      description:
-        "Encrypted ciphertext is pinned to IPFS nodes, producing a tamper-evident Content Identifier (CIDv0). Storage hosts possess randomized encrypted bytes with 0% plaintext visibility.",
-      codeSnippet: `// IPFS CIDv0 Multihash Content Addressing
-CID: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco"
-Digest: SHA-256 / Base58 (34 bytes multihash)
-Payload: Encrypted Blob (0% Plaintext Leakage)`
+      num: "02",
+      title: "Content-Addressed Storage",
+      spec: "IPFS CIDv0 Multihash",
+      detail:
+        "Encrypted ciphertext is pinned to IPFS nodes, producing a tamper-proof 34-byte multihash (SHA-256 digest). Storage hosts hold encrypted blobs with zero plaintext access.",
+      code: `CID: QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco
+Multihash: 0x12 0x20 [32-byte sha256 digest]
+Format: Base58 encoded string (34 bytes)`
     },
     {
-      step: "03",
-      title: "Solidity bytes32 Struct",
-      badge: "EVM SSTORE Gas Optimized",
-      icon: Layers,
-      description:
-        "Base58 multihash is decoded without truncation, packing the 32-byte digest into a native EVM bytes32 slot. Achieves ~45% SSTORE gas savings via 2-slot EVM struct packing.",
-      codeSnippet: `// 2-Slot Packed EVM Struct (45% Gas Savings)
-struct Record {
-    bytes32 ipfsHash;  // Slot 0 (32B)
-    address owner;     // Slot 1 (20B)
-    uint64 timestamp;  // Slot 1 (8B)
-    bool flEligible;   // Slot 1 (1B)
+      num: "03",
+      title: "On-Chain Access Registry",
+      spec: "Solidity 0.8.24 (2-Slot Packed)",
+      detail:
+        "The multihash digest is stored in EHRAccessControl.sol. The Record struct is tightly packed into 2 EVM storage slots, saving ~45% SSTORE gas on record registration.",
+      code: `struct Record {
+    bytes32 ipfsHash;  // Slot 0 (32 bytes)
+    address owner;     // Slot 1 (20 bytes)
+    uint64 timestamp;  // Slot 1 (8 bytes)
+    bool flEligible;   // Slot 1 (1 byte)
 }`
     },
     {
-      step: "04",
-      title: "Federated Learning (DP)",
-      badge: "DP-SGD Privacy Consensus",
-      icon: Cpu,
-      description:
-        "Local model gradients are computed on hospital nodes under (ε=1.2, δ=1e-5)-Differential Privacy with L2 norm clipping and Gaussian noise. Smart contract live checks verify patient consent each round.",
-      codeSnippet: `// DP-SGD + Live On-Chain Re-Check Every Round
-if not contract.hasAccess(record_hash, node_address):
-    exclude_hospital_node(node_id)
-clip_grad_norm_(model.parameters(), max_norm=1.0)
-grad.add_(torch.randn_like(grad) * noise_multiplier)`
+      num: "04",
+      title: "Collaborative Clinical AI",
+      spec: "PyTorch Cross-Silo FedAvg",
+      detail:
+        "Hospital nodes train disease prediction models locally without sharing raw data. The central aggregator verifies on-chain consent before every communication round.",
+      code: `for r in range(1, rounds + 1):
+    eligibility = check_live_hospital_eligibility()
+    active_nodes = [h for h in nodes if eligibility[h]]
+    weights = train_local_hospitals(active_nodes)
+    global_model = aggregate_fed_avg(weights)`
     }
   ];
 
   return (
-    <div className="space-y-16 py-4 relative">
-      {/* 1. HERO SECTION (Swiss Clinical Precision) */}
-      <section className="relative pt-4 pb-2 text-center max-w-4xl mx-auto space-y-6">
-        {/* Brand Emblem & Architecture Pill */}
+    <div className="space-y-16 py-2">
+      {/* 1. EDITORIAL HERO (Authoritative, Calm, No Rainbow Text) */}
+      <section className="pt-6 pb-2 max-w-4xl mx-auto space-y-6 text-center">
+        {/* Product Identity */}
         <div className="flex flex-col items-center gap-3">
-          <Logo size={54} className="hover:scale-105 transition-transform duration-200" />
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-mono uppercase tracking-widest text-slate-700 dark:text-slate-300 font-semibold">
-              Enterprise Zero-Knowledge EHR Architecture
-            </span>
-          </div>
+          <Logo size={48} showText={false} />
+          <span className="text-[11px] font-mono font-medium tracking-wide text-slate-500 dark:text-slate-400">
+            HealthLedger Research &amp; Clinical Engineering
+          </span>
         </div>
 
-        {/* Hero Title */}
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white font-heading leading-[1.12]">
-          Sovereign Patient Health Records with{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0284C7] via-[#0891B2] to-[#10B981]">
-            Cryptographic Access Control
-          </span>
+        {/* Solid, High-Contrast Typography */}
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white font-heading leading-[1.12]">
+          Patient-Owned Health Records with Cryptographic Access Control
         </h1>
 
-        {/* Subtitle */}
+        {/* Clinical Subtitle */}
         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed font-sans">
-          Client-side <strong className="text-slate-900 dark:text-slate-200">AES-256-GCM</strong> encryption meets decentralized <strong className="text-slate-900 dark:text-slate-200">IPFS</strong> multihash indexing, <strong className="text-slate-900 dark:text-slate-200">Ethereum</strong> smart contracts, and privacy-preserving <strong className="text-slate-900 dark:text-slate-200">Federated Learning</strong> with Differential Privacy.
+          A decentralized Electronic Health Record (EHR) architecture synthesizing client-side <span className="text-slate-900 dark:text-slate-200 font-medium">AES-256-GCM encryption</span>, content-addressed <span className="text-slate-900 dark:text-slate-200 font-medium">IPFS storage</span>, EVM smart contracts, and privacy-preserving <span className="text-slate-900 dark:text-slate-200 font-medium">Federated Learning</span>.
         </p>
 
-        {/* Primary Dual Launch CTAs */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+        {/* Action Controls (Solid ink & crisp secondary, no neon glows) */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             type="button"
             onClick={() => handleDemoLaunch("patient")}
-            className="w-full sm:w-auto h-12 px-7 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white font-bold text-sm tracking-tight shadow-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 font-semibold text-sm tracking-tight transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
           >
-            <User className="w-4 h-4" />
-            <span>Enter Patient Executive Portal</span>
-            <ArrowRight className="w-4 h-4" />
+            <User className="w-4 h-4 text-slate-300 dark:text-slate-700" />
+            <span>Open Patient Portal</span>
+            <ArrowRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
           </button>
 
           <button
             type="button"
             onClick={() => handleDemoLaunch("doctor")}
-            className="w-full sm:w-auto h-12 px-6 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-sm border border-slate-200 dark:border-slate-800 transition-all shadow-2xs flex items-center justify-center gap-2.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-white hover:bg-slate-50 dark:bg-[#0D121C] dark:hover:bg-[#121824] text-slate-800 dark:text-slate-200 font-semibold text-sm border border-slate-200 dark:border-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
           >
-            <Stethoscope className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
-            <span>Launch Physician Diagnostic Terminal</span>
+            <Stethoscope className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+            <span>Open Physician Terminal</span>
           </button>
         </div>
 
-        {/* Real-Time Network Trust Telemetry (4 Metric Tiles) */}
-        <div className="pt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 text-left">
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              Cryptographic Enclaves
-            </span>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              14 Active SGX Nodes
-            </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
-              Latency: 18ms • Sync 100%
-            </div>
-          </div>
+        {/* Keyboard shortcut hint */}
+        <div className="pt-1 flex items-center justify-center gap-4 text-xs font-mono text-slate-600 dark:text-slate-400">
+          <span>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono text-[11px]">⌘K</kbd> for quick command search</span>
+          <span>•</span>
+          <span>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono text-[11px]">⌘J</kbd> for medical jargon translator</span>
+        </div>
 
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              On-Chain Verified Records
-            </span>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              1,429 Attested
+        {/* Unified Telemetry Strip (Hairline-divided, tabular figures, no icons in colored circles) */}
+        <div className="pt-4">
+          <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#0D121C] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 text-left">
+            <div className="p-4 space-y-1">
+              <div className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Cryptographic Security
+              </div>
+              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                AES-256-GCM
+              </div>
+              <div className="text-[11px] text-slate-500 font-mono">
+                Zero plaintext leakage to storage
+              </div>
             </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
-              +12 past hour • Block #19,842,910
-            </div>
-          </div>
 
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              Storage Integrity
-            </span>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              0% Plaintext Leakage
+            <div className="p-4 space-y-1">
+              <div className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Gas Optimization
+              </div>
+              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                ~45% SSTORE
+              </div>
+              <div className="text-[11px] text-slate-500 font-mono">
+                2-slot EVM struct packing (Solidity)
+              </div>
             </div>
-            <div className="text-[11px] text-[#0284C7] dark:text-[#38BDF8] font-mono">
-              100% Client WebCrypto Encrypted
-            </div>
-          </div>
 
-          <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              SSTORE Gas Optimization
-            </span>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              45% Slot Savings
+            <div className="p-4 space-y-1">
+              <div className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Federated Accuracy
+              </div>
+              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                86.89% Test
+              </div>
+              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
+                0.9513 ROC-AUC across 4 silos
+              </div>
             </div>
-            <div className="text-[11px] text-[#0891B2] dark:text-[#22D3EE] font-mono">
-              2-Slot Packed bytes32 Struct
+
+            <div className="p-4 space-y-1">
+              <div className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Clinical Safety
+              </div>
+              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                24h Break-Glass
+              </div>
+              <div className="text-[11px] text-slate-500 font-mono">
+                Forensic trauma override with audit
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. 4-STAGE CRYPTOGRAPHIC PIPELINE ARCHITECTURE */}
+      {/* 2. CRYPTOGRAPHIC DATA FLOW SPECIFICATION (Clean, Structured Timeline) */}
       <section className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div>
-            <div className="flex items-center gap-2 text-[#0284C7] dark:text-[#38BDF8] text-xs font-mono font-bold tracking-wider uppercase">
-              <Zap className="w-3.5 h-3.5" />
-              <span>Zero-Trust Verification Topology</span>
+            <div className="text-slate-500 dark:text-slate-400 text-xs font-mono font-medium uppercase tracking-wider">
+              Technical Architecture
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 font-heading">
-              4-Stage Cryptographic Pipeline Architecture
+              Four-Stage Cryptographic Data Pipeline
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
-            Every FHIR diagnostic bundle is processed client-side prior to decentralized IPFS distribution and Ethereum consensus logging.
+            How medical data moves from in-browser client memory through IPFS content-addressing, smart contract access governance, and federated learning.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {cryptographicPipeline.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.step}
-                className="surface-card rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-[#0284C7]/50 transition-all shadow-2xs space-y-4"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-slate-400">
-                      STEP {item.step}
-                    </span>
-                    <div className="w-8 h-8 rounded-lg bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] flex items-center justify-center">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">
-                      {item.title}
-                    </h3>
-                    <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                      {item.badge}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
-                    {item.description}
-                  </p>
+          {PIPELINE_STAGES.map((stage) => (
+            <div
+              key={stage.num}
+              className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#0D121C] p-5 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-slate-400 dark:text-slate-600">
+                    STAGE {stage.num}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    {stage.spec}
+                  </span>
                 </div>
 
-                {/* Code / Architecture Snippet */}
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-700 dark:text-slate-300 overflow-x-auto leading-tight shadow-inner">
-                  <pre>{item.codeSnippet}</pre>
-                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
+                  {stage.title}
+                </h3>
+
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
+                  {stage.detail}
+                </p>
               </div>
-            );
-          })}
+
+              {/* Exact Technical Code Preview */}
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#070A0F] border border-slate-200 dark:border-slate-800 font-mono text-[10px] text-slate-700 dark:text-slate-300 overflow-x-auto leading-relaxed">
+                <pre>{stage.code}</pre>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* 3. DUAL PERSONA DIAGNOSTIC TERMINALS */}
+      {/* 3. CLINICAL WORKSPACE PREVIEWS (Real Data, Honest Interfaces) */}
       <section className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div>
-            <div className="flex items-center gap-2 text-[#0284C7] dark:text-[#38BDF8] text-xs font-mono font-bold tracking-wider uppercase">
-              <Layers className="w-3.5 h-3.5" />
-              <span>Role-Based Sovereign Enclaves</span>
+            <div className="text-slate-500 dark:text-slate-400 text-xs font-mono font-medium uppercase tracking-wider">
+              Application Roles
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 font-heading">
-              Dual Persona Diagnostic Terminals
+              Sovereign Patient &amp; Attending Physician Interfaces
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
-            Zero-knowledge cryptographic access boundaries for both sovereign patients and licensed diagnostic physicians.
+            Decoupled access boundaries ensuring patients retain key ownership while clinicians receive structured consultation passes.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Persona Card 1: Patient Executive Portal */}
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5 flex flex-col justify-between">
+          {/* Patient Role Panel */}
+          <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#0D121C] p-6 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#0284C7] text-white flex items-center justify-center font-bold text-sm font-mono shadow-sm">
-                    AM
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
-                        Alex Mercer
-                      </h3>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                        MRN-9482-A
-                      </span>
-                    </div>
-                    <span className="text-xs text-[#0284C7] dark:text-[#38BDF8] font-medium">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                       Patient Executive Portal
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      MRN-84920-A
                     </span>
                   </div>
-                </div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Active Vault
-                </span>
-              </div>
-
-              {/* Patient Features Preview */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  Continuous Biometric &amp; Lab Feeds
-                </span>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-700 dark:text-slate-300">Fasting Blood Glucose:</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">
-                    94 mg/dL <span className="text-emerald-600 dark:text-emerald-400 font-normal">(Normal)</span>
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-700 dark:text-slate-300">Total Cholesterol (LOINC: 2093-3):</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">
-                    172 mg/dL <span className="text-emerald-600 dark:text-emerald-400 font-normal">(Desirable)</span>
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  EIP-712 Active Consents
-                </span>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">
-                    Dr. Sarah Chen, MD (Cardiology)
-                  </span>
-                  <span className="text-[10px] font-mono text-[#0284C7] dark:text-[#38BDF8]">
-                    Active (30-day Pass)
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-[#0284C7]/5 border border-[#0284C7]/20 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-white font-heading">
-                    Federated Research Gradient Contribution
-                  </div>
-                  <div className="text-[10px] text-slate-500 font-mono">
-                    Differential privacy budget: ε=1.2
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Alex Mercer • Metro Health Comprehensive Center
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                  CONSENTED
+                <span className="text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Active Keyholder
                 </span>
+              </div>
+
+              {/* Vitals Summary */}
+              <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                <div className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">
+                  Baseline Biometric &amp; Diagnostic State
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-300 font-mono">
+                  <div>Blood Pressure: <strong className="text-slate-900 dark:text-white">118/78 mmHg</strong></div>
+                  <div>Heart Rate: <strong className="text-slate-900 dark:text-white">72 bpm</strong></div>
+                  <div>Total Cholesterol: <strong className="text-slate-900 dark:text-white">172 mg/dL</strong></div>
+                  <div>Oxygen Saturation: <strong className="text-slate-900 dark:text-white">99% SpO2</strong></div>
+                </div>
+              </div>
+
+              {/* Patient Capabilities List */}
+              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <span><strong>Client-Side Encryption:</strong> Encrypt lab reports in browser memory before IPFS storage.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <span><strong>Time-Bound Delegation:</strong> Grant 24-hour, 7-day, or 30-day read privileges to attending doctors.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <span><strong>GDPR Art. 7(3) Consent Toggle:</strong> Revoke Federated Learning research consent in 1 click.</span>
+                </div>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => handleDemoLaunch("patient")}
-              className="w-full h-11 rounded-xl bg-[#0284C7] hover:bg-[#0284C7]/90 text-white font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
+              className="w-full h-10 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Open Patient Portal View</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Launch Sovereign Patient Portal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Persona Card 2: Physician Diagnostic Terminal */}
-          <div className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5 flex flex-col justify-between">
+          {/* Physician Role Panel */}
+          <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#0D121C] p-6 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#0891B2] text-white flex items-center justify-center font-bold text-sm font-mono shadow-sm">
-                    SC
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
-                        Dr. Sarah Chen, MD, FACC
-                      </h3>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                        NPI-104928501
-                      </span>
-                    </div>
-                    <span className="text-xs text-[#0891B2] dark:text-[#22D3EE] font-medium">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
                       Physician Diagnostic Terminal
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      MED-90281-NY
                     </span>
                   </div>
-                </div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  EIP-712 Bound
-                </span>
-              </div>
-
-              {/* Physician Features Preview */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  Ward Enclave Triage Queue
-                </span>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-700 dark:text-slate-300">Alex Mercer (Post-PCI)</span>
-                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/30">
-                    Attested
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-700 dark:text-slate-300">Elena Rostova (Non-ST ACS)</span>
-                  <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-500/30">
-                    Pending
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  HL7 FHIR v4.0.1 Composition Station
-                </span>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">
-                    Diagnostic Directives (LOINC 8867-4)
-                  </span>
-                  <span className="text-[10px] font-mono text-[#0284C7] dark:text-[#38BDF8]">
-                    AES-GCM-256 Encrypted
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-rose-900 dark:text-rose-300 font-heading">
-                    Emergency Break-Glass Protocol
-                  </div>
-                  <div className="text-[10px] text-rose-700 dark:text-rose-400 font-mono">
-                    HL7 trauma override with forensic blockchain logging
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Dr. Sarah Chen, MD, FACC • St. Jude Heart Institute
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200">
-                  AVAILABLE
+                <span className="text-[11px] font-mono font-medium text-sky-600 dark:text-sky-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                  Level-3 Credentialed
                 </span>
+              </div>
+
+              {/* Clinical Station Preview */}
+              <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                <div className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">
+                  Active Consultation &amp; Decryption Queue
+                </div>
+                <div className="space-y-1.5 font-mono text-slate-700 dark:text-slate-300">
+                  <div className="flex justify-between items-center">
+                    <span>EHR-82A9 (Cardiac Angiography)</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Decrypted (Verified)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>EHR-1111 (Lipid Diagnostic Panel)</span>
+                    <span className="text-[10px] text-slate-500">Read Permission Valid (24d remaining)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Physician Capabilities List */}
+              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <span><strong>In-Browser Decryption:</strong> Decrypt authorized records using patient-provided symmetric keys.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <span><strong>EIP-712 Directives:</strong> Issue standardized LOINC &amp; SNOMED-CT clinical orders with digital signatures.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                  <span><strong>Emergency Break-Glass:</strong> Override standard locks in acute trauma with mandatory on-chain audit log.</span>
+                </div>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => handleDemoLaunch("doctor")}
-              className="w-full h-11 rounded-xl surface-card hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs focus-visible:ring-2 focus-visible:ring-[#0284C7] focus-visible:outline-none"
+              className="w-full h-10 rounded-lg bg-white hover:bg-slate-50 dark:bg-[#121824] dark:hover:bg-[#171F2E] text-slate-800 dark:text-slate-200 font-semibold text-xs border border-slate-200 dark:border-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Open Physician Terminal View</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Launch Physician Diagnostic Terminal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </section>
 
-      {/* 4. ENCRYPTED TELEMETRY INGESTION LOG */}
-      <section className="surface-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+      {/* 4. INSTITUTIONAL STANDARDS & AUDIT INTEGRITY */}
+      <section className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#0D121C] p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <span className="text-[10px] font-mono text-[#0284C7] dark:text-[#38BDF8] uppercase font-bold tracking-wider">
-              FHIR::Observation Telemetry Feed
-            </span>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white font-heading">
-              Encrypted Telemetry Ingestion Log
+            <div className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+              Regulatory &amp; Cryptographic Standards
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">
+              Healthcare Governance &amp; Compliance Verification
             </h3>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-slate-500">Contract: EHRAccessControl.sol</span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Live Stream
-            </span>
-          </div>
+          <span className="text-xs font-mono text-slate-500">Verified Solidity 0.8.24 · Hardhat 29/29</span>
         </div>
 
-        <div className="space-y-2.5 font-mono text-xs">
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:translate-x-1 transition-all duration-150">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                FHIR Resource: Observation/ECG-Lead-II
-              </span>
-              <span className="text-[10px] text-slate-500">LOINC 8601-5 • Sinus Rhythm 72 bpm</span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <span>CID: QmNlei78z...4901</span>
-              <span>Gas: 41,200 (Packed)</span>
-              <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-500/30">
-                ZK-Attested
-              </span>
-              <span className="text-[10px]">14s ago</span>
-            </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+          <div className="space-y-1">
+            <div className="text-slate-400 text-[10px] uppercase">HIPAA Security Rule</div>
+            <div className="font-bold text-slate-800 dark:text-slate-200">45 CFR § 164.312(a)</div>
+            <div className="text-slate-500 text-[11px]">Zero-plaintext transmission</div>
           </div>
-
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:translate-x-1 transition-all duration-150">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                FHIR Resource: DiagnosticReport/Serum-Electrolytes
-              </span>
-              <span className="text-[10px] text-slate-500">LOINC 24326-1 • Potassium 4.1 mmol/L</span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <span>CID: QmPf88wXk...1102</span>
-              <span>Gas: 42,050 (Packed)</span>
-              <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-500/30">
-                ZK-Attested
-              </span>
-              <span className="text-[10px]">1m ago</span>
-            </div>
+          <div className="space-y-1">
+            <div className="text-slate-400 text-[10px] uppercase">GDPR Privacy Rights</div>
+            <div className="font-bold text-slate-800 dark:text-slate-200">Article 7(3) &amp; Art. 9</div>
+            <div className="text-slate-500 text-[11px]">Real-time consent revocation</div>
           </div>
-
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:translate-x-1 transition-all duration-150">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#0284C7]" />
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                FHIR Resource: Observation/BloodPressure-Ambulatory
-              </span>
-              <span className="text-[10px] text-slate-500">LOINC 85354-9 • 118/78 mmHg</span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <span>CID: QmU88kLm1...9934</span>
-              <span>Gas: 41,890 (Packed)</span>
-              <span className="px-2 py-0.5 rounded text-[10px] bg-[#0284C7]/10 text-[#0284C7] dark:text-[#38BDF8] font-bold border border-[#0284C7]/30">
-                Enclave Queued
-              </span>
-              <span className="text-[10px]">4m ago</span>
-            </div>
+          <div className="space-y-1">
+            <div className="text-slate-400 text-[10px] uppercase">Clinical Interoperability</div>
+            <div className="font-bold text-slate-800 dark:text-slate-200">HL7 FHIR v4.0.1</div>
+            <div className="text-slate-500 text-[11px]">Standardized observation bundles</div>
           </div>
-        </div>
-      </section>
-
-      {/* 5. CLINICAL COMPLIANCE & CRYPTOGRAPHIC TRUST BADGES */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-center">
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-          <Shield className="w-5 h-5 mx-auto text-[#0284C7] dark:text-[#38BDF8]" />
-          <div className="text-xs font-bold text-slate-900 dark:text-white font-heading">
-            HIPAA Safe Harbor
+          <div className="space-y-1">
+            <div className="text-slate-400 text-[10px] uppercase">Smart Contract Audit</div>
+            <div className="font-bold text-slate-800 dark:text-slate-200">OpenZeppelin SafeGuard</div>
+            <div className="text-slate-500 text-[11px]">Re-entrancy &amp; access guards</div>
           </div>
-          <div className="text-[10px] text-slate-500 font-mono">Certified §164.514(b)</div>
-        </div>
-
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-          <Lock className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
-          <div className="text-xs font-bold text-slate-900 dark:text-white font-heading">
-            GDPR Art. 9
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono">Special Category Health</div>
-        </div>
-
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-          <Database className="w-5 h-5 mx-auto text-[#0891B2] dark:text-[#22D3EE]" />
-          <div className="text-xs font-bold text-slate-900 dark:text-white font-heading">
-            HL7 FHIR v4.0.1
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono">Interoperability Standard</div>
-        </div>
-
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
-          <Key className="w-5 h-5 mx-auto text-[#0284C7] dark:text-[#38BDF8]" />
-          <div className="text-xs font-bold text-slate-900 dark:text-white font-heading">
-            W3C DID v1.0
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono">Decentralized Identifiers</div>
-        </div>
-
-        <div className="surface-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs col-span-2 sm:col-span-1">
-          <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600 dark:text-emerald-400" />
-          <div className="text-xs font-bold text-slate-900 dark:text-white font-heading">
-            OpenZeppelin v5.0
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono">Audited Smart Contracts</div>
         </div>
       </section>
     </div>

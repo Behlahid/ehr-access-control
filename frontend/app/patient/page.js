@@ -278,18 +278,15 @@ export default function PatientDashboard() {
       <div className="max-w-4xl mx-auto py-12 px-4 space-y-10 animate-in fade-in duration-300">
         <Notification notification={notification} onClose={() => setNotification(null)} />
 
-        <div className="bg-white dark:bg-[#0B0F17] rounded-3xl p-8 sm:p-12 border border-[#BAE6FD] dark:border-slate-800 shadow-xl text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+        <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-sm text-center relative">
           <div className="relative z-10 max-w-xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30 text-xs font-semibold">
-              <span className="flex h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
-              <span>PATIENT DATA SOVEREIGNTY VAULT</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>PATIENT HEALTH RECORD VAULT</span>
             </div>
 
-            <div className="w-16 h-16 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center mx-auto shadow-lg shadow-sky-600/25">
-              <Shield className="w-8 h-8" />
+            <div className="w-12 h-12 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 flex items-center justify-center mx-auto shadow-xs">
+              <Shield className="w-6 h-6" />
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight font-heading">
@@ -297,15 +294,15 @@ export default function PatientDashboard() {
             </h1>
 
             <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed font-sans">
-              Connect your Ethereum wallet to manage client-side encrypted diagnostic records, grant time-bound doctor access, and maintain granular consent over collaborative federated learning.
+              Manage client-side encrypted diagnostic records, grant time-bound doctor access, and maintain granular consent over collaborative federated learning.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={connectWallet}
                 disabled={isConnecting}
-                className="w-full sm:w-auto h-12 px-7 rounded-xl bg-[#0284C7] hover:bg-sky-500 text-white font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60"
+                className="w-full sm:w-auto h-11 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                 <span>Connect MetaMask Wallet</span>
@@ -314,14 +311,14 @@ export default function PatientDashboard() {
               <button
                 type="button"
                 onClick={() => enterDemoMode("patient")}
-                className="w-full sm:w-auto h-12 px-7 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 font-bold text-sm shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer"
+                className="w-full sm:w-auto h-11 px-6 rounded-xl bg-white hover:bg-slate-50 dark:bg-[#121824] dark:hover:bg-[#171F2E] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400" />
                 <span>Explore Clinical Demo</span>
               </button>
             </div>
 
-            <div className="pt-4 flex items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400 font-mono">
+            <div className="pt-3 flex items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400 font-mono">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                 Zero Plaintext Storage
@@ -336,31 +333,31 @@ export default function PatientDashboard() {
         </div>
 
         {/* 3 Pillar Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-6 border border-[#BAE6FD]/70 dark:border-slate-800 shadow-sm space-y-2.5">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-200 dark:border-sky-500/20">
-              <Lock className="w-4 h-4" />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+            <span className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">
+              Cryptographic Privacy
+            </span>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">Zero-Knowledge Storage</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
               All files are encrypted inside your browser with AES-GCM before transmission. Storage nodes only see randomized ciphertext.
             </p>
           </div>
 
-          <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-6 border border-[#BAE6FD]/70 dark:border-slate-800 shadow-sm space-y-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
-              <UserCheck className="w-4 h-4" />
-            </div>
+          <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+            <span className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">
+              Access Governance
+            </span>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">Granular Doctor Delegation</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
               Authorize attending physicians on a per-record basis with automatic expiration timestamps enforced by EVM smart contracts.
             </p>
           </div>
 
-          <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-6 border border-[#BAE6FD]/70 dark:border-slate-800 shadow-sm space-y-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-500/20">
-              <Cpu className="w-4 h-4" />
-            </div>
+          <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+            <span className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">
+              Research Consent
+            </span>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">Federated AI Sovereignty</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
               Dynamically opt-in or pause AI model training consent per record with live smart contract verification before each round.
@@ -407,13 +404,13 @@ export default function PatientDashboard() {
       />
 
       {/* Top Banner: Patient Enclave Identity & High-Level Metrics */}
-      <section className="bg-white dark:bg-[#0B0F17] rounded-3xl p-6 sm:p-8 border border-[#BAE6FD] dark:border-slate-800 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+      <section className="bg-white dark:bg-[#0B0F17] rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-heading">
               {isDemoMode ? "Alex Mercer" : "Sovereign Health Vault"}
             </h1>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               <span>{isDemoMode ? "MRN-84920-A" : shortenAddress(account)}</span>
               {account && (
                 <button
@@ -427,7 +424,7 @@ export default function PatientDashboard() {
               )}
             </div>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               <span>{isDemoMode ? "Demo Enclave Attested" : "Ethereum Smart Contract Active"}</span>
             </span>
           </div>
@@ -442,17 +439,17 @@ export default function PatientDashboard() {
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-[#0284C7] hover:bg-sky-500 text-white font-bold text-xs tracking-tight shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 font-semibold text-xs tracking-tight shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <Upload className="w-4 h-4" />
-            <span>Upload & Encrypt Medical Record</span>
+            <span>Upload &amp; Encrypt Medical Record</span>
           </button>
         </div>
       </section>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-5 border border-[#BAE6FD]/60 dark:border-slate-800 shadow-sm space-y-1">
+        <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-sans">Anchored Medical Records</div>
           <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">
             {records.length}
@@ -460,7 +457,7 @@ export default function PatientDashboard() {
           <div className="text-[11px] text-slate-500 font-mono">100% Client AES-GCM Encrypted</div>
         </div>
 
-        <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-5 border border-[#BAE6FD]/60 dark:border-slate-800 shadow-sm space-y-1">
+        <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-sans">Active Doctor Authorizations</div>
           <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-heading">
             {isDemoMode ? "2 Clinicians" : "Dynamic Permissions"}
@@ -468,7 +465,7 @@ export default function PatientDashboard() {
           <div className="text-[11px] text-slate-500 font-mono">Time-bound access expiry enabled</div>
         </div>
 
-        <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-5 border border-[#BAE6FD]/60 dark:border-slate-800 shadow-sm space-y-1">
+        <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-sans">Federated Learning Contribution</div>
           <div className="text-2xl font-extrabold text-purple-600 dark:text-purple-400 font-heading">
             {flPercentage}% Opted-In
@@ -523,7 +520,7 @@ export default function PatientDashboard() {
       {activeTab === "records" && (
         <div className="space-y-4">
           {/* Search & Filter Header */}
-          <div className="bg-white dark:bg-[#0B0F17] rounded-2xl p-4 border border-[#BAE6FD]/60 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -600,7 +597,7 @@ export default function PatientDashboard() {
                 return (
                   <div
                     key={rec.ipfsHash}
-                    className="bg-white dark:bg-[#0B0F17] p-5 sm:p-6 rounded-2xl border border-[#BAE6FD]/70 dark:border-slate-800 shadow-sm hover:border-[#0284C7]/50 transition-all space-y-4"
+                    className="bg-white dark:bg-[#0B0F17] p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors space-y-4"
                   >
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -741,7 +738,7 @@ export default function PatientDashboard() {
 
       {/* TAB 2: Care Team Roster */}
       {activeTab === "careteam" && (
-        <div className="bg-white dark:bg-[#0B0F17] rounded-3xl p-6 sm:p-8 border border-[#BAE6FD]/70 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
           <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white font-heading">
               Physician Consultation Delegations
@@ -766,7 +763,7 @@ export default function PatientDashboard() {
 
       {/* TAB 3: Immutable Audit Trail */}
       {activeTab === "audit" && (
-        <div className="bg-white dark:bg-[#0B0F17] rounded-3xl p-6 sm:p-8 border border-[#BAE6FD]/70 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-[#0B0F17] rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
           <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white font-heading flex items-center gap-2">
               <Activity className="w-4 h-4 text-[#0284C7]" />
